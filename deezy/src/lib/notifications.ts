@@ -18,13 +18,15 @@ class NotificationManager {
   async initialize(): Promise<void> {
     try {
       const settings = await invoke<AppSettings>('get_settings');
-      this.notificationsEnabled = settings.notifications_enabled ?? true;
+      this.setEnabled(settings.notifications_enabled ?? true);
     } catch (err) {
       console.error('Failed to load notification settings:', err);
-      this.notificationsEnabled = true;
+      this.setEnabled(true);
     }
 
-    await this.checkPermission();
+    if (this.notificationsEnabled) {
+      await this.checkPermission();
+    }
   }
 
   async checkPermission(): Promise<boolean> {
@@ -49,6 +51,10 @@ class NotificationManager {
 
   setEnabled(enabled: boolean): void {
     this.notificationsEnabled = enabled;
+
+    if (!enabled) {
+      this.pendingNotifications = [];
+    }
   }
 
   getEnabled(): boolean {
@@ -76,6 +82,8 @@ class NotificationManager {
   }
 
   private async sendNotificationInternal(title: string, body: string): Promise<void> {
+    if (!this.notificationsEnabled) return;
+
     try {
       await sendNotification({ title, body });
     } catch (err) {

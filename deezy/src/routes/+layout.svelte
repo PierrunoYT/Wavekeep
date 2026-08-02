@@ -13,12 +13,14 @@
     type UserInfo, 
     type DownloadItem,
     type DownloadStatus,
+    notificationsEnabled,
     type Theme,
     type AppSettings
   } from '$lib/stores';
   import { initI18n } from '$lib/i18n';
   import { locale as i18nLocale } from 'svelte-i18n';
   import { trayManager } from '$lib/tray';
+  import { notificationManager } from '$lib/notifications';
 
   let { children } = $props();
   
@@ -119,6 +121,10 @@
     try {
       const settings = await invoke<AppSettings>('get_settings');
       
+      const notificationsOn = settings.notifications_enabled ?? true;
+      notificationsEnabled.set(notificationsOn);
+      notificationManager.setEnabled(notificationsOn);
+
       const savedLocale = settings.locale || 'en';
       await initI18n(savedLocale);
       currentLocale.set(savedLocale);
