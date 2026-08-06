@@ -34,7 +34,7 @@
   let customFolderTemplate = $state('{artist}/{release_date} - {album}/{track_number} - {title}');
   let currentTheme = $state<Theme>('dark');
   let customTheme = $state<string | null>(null);
-  let enableNotifications = $state(true);
+  let enableNotifications = $state($notificationsEnabled);
   let enableSearchHistory = $state(true);
   let closeToTray = $state(true);
   let selectedLocale = $state('en');
@@ -86,9 +86,6 @@
         if (settings.theme) currentTheme = settings.theme;
         customTheme = settings.custom_theme;
         if (settings.locale) selectedLocale = settings.locale;
-        if (settings.notifications_enabled !== undefined) {
-          enableNotifications = settings.notifications_enabled;
-        }
         if (settings.enable_search_history !== undefined) {
           enableSearchHistory = settings.enable_search_history;
         }
@@ -100,9 +97,6 @@
       }
 
       await refreshArlStorage();
-
-      // Initialize notification manager
-      notificationManager.initialize();
 
       // Subscribe to theme changes
       unsubTheme = theme.subscribe(t => currentTheme = t);

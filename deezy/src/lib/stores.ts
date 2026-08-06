@@ -97,7 +97,7 @@ export const downloadQueue: Writable<QueuedDownload[]> = writable([]);
 export const pausedDownloads: Writable<Set<string>> = writable(new Set());
 
 export const theme: Writable<Theme> = writable(DEFAULT_THEME);
-export const notificationsEnabled: Writable<boolean> = writable(true);
+export const notificationsEnabled: Writable<boolean> = writable(false);
 export const searchHistory: Writable<string[]> = writable([]);
 export const currentLocale: Writable<string> = writable(DEFAULT_LOCALE);
 export const settingsArlDraft: Writable<string> = writable('');
