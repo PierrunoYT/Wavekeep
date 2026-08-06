@@ -44,7 +44,7 @@ A modern desktop Deezer downloader. Search for tracks, albums, artists, and play
 - **Keyboard shortcuts** – Ctrl+F, Ctrl+1/2/3, Ctrl+H, Space, Shift+? and more
 - **System tray** – Minimize to tray with download status and quick controls
 - **Manual updates** – Install Windows releases from GitHub or rebuild from source on macOS and Linux
-- **Secure credentials** – ARL token stored in the OS credential store and excluded from `settings.json`
+- **Secure credentials** – ARL replacements are authenticated before storage, normally kept in the OS credential store, and redacted from `settings.json`; a clearly indicated private-file fallback is available when secure storage is unavailable
 
 ---
 
@@ -80,7 +80,7 @@ Install the output from `src-tauri/target/release/bundle/` (`.dmg` on macOS, `.d
 2. Open DevTools (`F12`) → **Application** (Chrome) or **Storage** (Firefox) → **Cookies** → `https://www.deezer.com`
 3. Copy the complete value of the `arl` cookie
 
-> Treat the ARL like a password. Deezy stores it in Windows Credential Manager, macOS Keychain, or Linux Secret Service and excludes it from `settings.json`. It can expire or be invalidated and may need to be updated.
+> Treat the ARL like a password. Deezy normally stores it in Windows Credential Manager, macOS Keychain, or Linux Secret Service and excludes it from `settings.json`. If secure storage is unavailable, Deezy can use a clearly indicated private-file fallback. A replacement is authenticated before the working credential is changed. The ARL can expire or be invalidated and may need to be updated.
 
 ---
 

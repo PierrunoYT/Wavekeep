@@ -383,7 +383,7 @@
   async function downloadTrack(track: Track): Promise<void> {
     const trackId = String(track.id);
     const state = downloadStates.get(trackId);
-    if (state === 'downloading' || state === 'complete') return;
+    if (['resolving', 'downloading', 'tagging', 'complete'].includes(state ?? '')) return;
     await downloadQueueManager.addToQueue(track);
   }
 
@@ -476,7 +476,7 @@
 
   function getDownloadButtonState(trackId: string): 'idle' | 'downloading' | 'complete' {
     const state = downloadStates.get(trackId);
-    if (state === 'downloading') return 'downloading';
+    if (['resolving', 'downloading', 'tagging'].includes(state ?? '')) return 'downloading';
     if (state === 'complete') return 'complete';
     return 'idle';
   }

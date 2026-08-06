@@ -166,25 +166,12 @@
     showStatus($_('settings.status.loggingIn'), 'info');
 
     try {
-      const newSettings: AppSettings = {
-        arl: trimmedArl,
+      const updates = {
         output_dir: outputDir.trim(),
         quality,
         folder_structure: folderStructure,
-        custom_folder_template: customFolderTemplate.trim(),
-        theme: currentTheme,
-        custom_theme: customTheme,
-        notifications_enabled: enableNotifications,
-        enable_search_history: enableSearchHistory,
-        close_to_tray: closeToTray,
-        locale: selectedLocale,
-        search_history: []
+        custom_folder_template: customFolderTemplate.trim()
       };
-      await invoke('save_settings', { newSettings });
-      await refreshArlStorage();
-
-      notificationManager.setEnabled(enableNotifications);
-      notificationsEnabled.set(enableNotifications);
 
       const user = trimmedArl
         ? await invoke<UserInfo>('login', { arl: trimmedArl })
@@ -195,6 +182,12 @@
         loggedIn.set(false);
         return;
       }
+
+      await invoke('update_settings', { updates });
+      await refreshArlStorage();
+
+      notificationManager.setEnabled(enableNotifications);
+      notificationsEnabled.set(enableNotifications);
 
       loggedIn.set(true);
       userInfo.set(user);
@@ -216,9 +209,7 @@
 
   async function updateSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]): Promise<void> {
     try {
-      const settings = await invoke<AppSettings>('get_settings');
-      settings[key] = value;
-      await invoke('save_settings', { newSettings: settings });
+      await invoke('update_settings', { updates: { [key]: value } });
     } catch (err) {
       console.error(`Failed to save ${key} setting:`, err);
       throw err;

@@ -42,6 +42,9 @@ pub async fn save_settings(
     if merged.arl.trim().is_empty() {
         merged.arl = settings.arl.clone();
     }
+    // Search history is backend-owned and must not be erased by a stale or
+    // intentionally redacted full-settings payload from the renderer.
+    merged.search_history = settings.search_history.clone();
 
     if merged.arl.trim().is_empty() {
         return Err("ARL token is required".to_string());
@@ -51,6 +54,37 @@ pub async fn save_settings(
     let settings_to_save = merged.clone();
     run_blocking(move || settings_to_save.save(&app)).await?;
     *state.settings.lock().await = merged;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn update_settings(
+    updates: serde_json::Map<String, Value>,
+    state: tauri::State<'_, AppState>,
+    app: AppHandle,
+) -> Result<(), String> {
+    let _settings_io = state.settings_io.lock().await;
+    let mut settings = state.settings.lock().await.clone();
+
+    for (key, value) in updates {
+        match key.as_str() {
+            "output_dir" => settings.output_dir = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            "quality" => settings.quality = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            "folder_structure" => settings.folder_structure = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            "custom_folder_template" => settings.custom_folder_template = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            "theme" => settings.theme = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            "custom_theme" => settings.custom_theme = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            "notifications_enabled" => settings.notifications_enabled = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            "enable_search_history" => settings.enable_search_history = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            "close_to_tray" => settings.close_to_tray = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            "locale" => settings.locale = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            _ => return Err(format!("Setting '{}' cannot be updated individually", key)),
+        }
+    }
+
+    let settings_to_save = settings.clone();
+    run_blocking(move || settings_to_save.save(&app)).await?;
+    *state.settings.lock().await = settings;
     Ok(())
 }
 

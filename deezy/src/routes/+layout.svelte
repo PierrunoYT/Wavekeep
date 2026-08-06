@@ -20,6 +20,7 @@
   import { initI18n } from '$lib/i18n';
   import { locale as i18nLocale } from 'svelte-i18n';
   import { trayManager } from '$lib/tray';
+  import { downloadQueueManager } from '$lib/downloadQueue';
   import { notificationManager } from '$lib/notifications';
 
   let { children } = $props();
@@ -35,6 +36,11 @@
     title: string;
     percent: number;
     status: DownloadStatus;
+  }
+
+  interface TagErrorEvent {
+    track_id: string;
+    error: string;
   }
 
   interface CustomThemeData {
@@ -94,6 +100,7 @@
   }
   
   let unlistenProgress: UnlistenFn | undefined;
+  let unlistenTagError: UnlistenFn | undefined;
   let unlistenExitRequested: UnlistenFn | undefined;
   let saveHistoryTimeout: ReturnType<typeof setTimeout> | undefined;
   let pendingHistory: DownloadItem[] | undefined;
@@ -217,6 +224,7 @@
     if (exitInProgress) return;
     exitInProgress = true;
 
+    await downloadQueueManager.prepareForExit();
     await flushDownloadHistory();
     await invoke('exit_app');
   }
@@ -291,10 +299,22 @@
       unlistenProgress = await listen<DownloadProgressEvent>('download-progress', (event) => {
         handleDownloadProgress(event.payload);
       });
+
+      unlistenTagError = await listen<TagErrorEvent>('tag-writing-error', (event) => {
+        const { track_id, error } = event.payload;
+        downloadHistory.update(history =>
+          history.map(item =>
+            item.trackId === track_id
+              ? { ...item, errorMsg: `Warning: Tags not written - ${error}` }
+              : item
+          )
+        );
+      });
     })();
 
     return () => {
       unlistenProgress?.();
+      unlistenTagError?.();
       unlistenExitRequested?.();
       unsubscribeHistory();
       unsubscribeTheme();

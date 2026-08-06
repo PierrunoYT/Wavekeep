@@ -15,12 +15,6 @@
     status: DownloadStatus;
   }
 
-  interface TagErrorEvent {
-    track_id: string;
-    title: string;
-    error: string;
-  }
-
   interface Props {
     /** Optional callback to open the Tag Editor for a downloaded file. */
     onEditTags?: (filePath: string) => void;
@@ -31,7 +25,6 @@
   let downloadItems = $state<DownloadItem[]>([]);
   let showExportModal = $state(false);
   let unlistenProgress: UnlistenFn | undefined;
-  let unlistenTagError: UnlistenFn | undefined;
 
   $effect(() => {
     const unsubHistory = downloadHistory.subscribe(val => {
@@ -66,21 +59,10 @@
       });
     });
 
-    unlistenTagError = await listen<TagErrorEvent>('tag-writing-error', (event) => {
-      const { track_id, error } = event.payload;
-      downloadHistory.update(history =>
-        history.map(item =>
-          item.trackId === track_id
-            ? { ...item, errorMsg: `Warning: Tags not written - ${error}` }
-            : item
-        )
-      );
-    });
   });
 
   onDestroy(() => {
     unlistenProgress?.();
-    unlistenTagError?.();
   });
 
   function clearHistory(): void {
@@ -316,7 +298,7 @@
                 </svg>
               </button>
             {/if}
-            {#if item.errorMsg && !['error','paused','downloading','resolving','complete'].includes(item.status)}
+            {#if item.errorMsg && ['error', 'complete'].includes(item.status)}
               <div class="error-msg" title={item.errorMsg} role="alert">⚠</div>
             {/if}
           </div>

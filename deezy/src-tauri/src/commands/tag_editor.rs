@@ -1,5 +1,7 @@
 use super::*;
 
+const MAX_COVER_ART_BYTES: u64 = 20 * 1024 * 1024;
+
 // ── Tag Editor ────────────────────────────────────────────────────────────────
 
 /// Open a file picker limited to MP3 and FLAC files.
@@ -52,9 +54,8 @@ fn read_image_as_data_url_blocking(file_path: String) -> Result<String, String> 
     use base64::Engine as _;
     use base64::engine::general_purpose::STANDARD as B64;
 
-    let bytes = std::fs::read(&file_path)
-        .map_err(|e| format!("Failed to read image: {}", e))?;
-    let mime = detect_image_mime(&bytes);
+    let bytes = read_cover_image(&file_path)?;
+    let mime = detect_image_mime(&bytes)?;
     Ok(format!("data:{};base64,{}", mime, B64.encode(&bytes)))
 }
 
@@ -108,6 +109,7 @@ fn read_file_tags_blocking(filePath: String) -> Result<FileTagData, String> {
             let comment = tag.comments().next().map(|c| c.text.clone());
 
             let (cover_data, cover_mime) = tag.pictures().next()
+                .filter(|p| p.data.len() as u64 <= MAX_COVER_ART_BYTES)
                 .map(|p| (
                     Some(B64.encode(&p.data)),
                     Some(p.mime_type.clone()),
@@ -148,6 +150,7 @@ fn read_file_tags_blocking(filePath: String) -> Result<FileTagData, String> {
             let comment      = get("COMMENT");
 
             let (cover_data, cover_mime) = tag.pictures().next()
+                .filter(|p| p.data.len() as u64 <= MAX_COVER_ART_BYTES)
                 .map(|p| (
                     Some(B64.encode(&p.data)),
                     Some(p.mime_type.clone()),
@@ -189,8 +192,8 @@ fn write_file_tags_blocking(filePath: String, tags: WriteTagData) -> Result<(), 
 
     // Resolve new cover bytes once (used for both MP3 and FLAC branches)
     let new_cover: Option<Vec<u8>> = if let Some(ref cover_path) = tags.new_cover_path {
-        let bytes = std::fs::read(cover_path)
-            .map_err(|e| format!("Failed to read cover image: {}", e))?;
+        let bytes = read_cover_image(cover_path)?;
+        detect_image_mime(&bytes)?;
         Some(bytes)
     } else {
         None
@@ -237,7 +240,7 @@ fn write_file_tags_blocking(filePath: String, tags: WriteTagData) -> Result<(), 
             if tags.remove_cover {
                 tag.remove_picture_by_type(id3::frame::PictureType::CoverFront);
             } else if let Some(cover_bytes) = new_cover {
-                let mime = detect_image_mime(&cover_bytes);
+                let mime = detect_image_mime(&cover_bytes)?;
                 tag.remove_picture_by_type(id3::frame::PictureType::CoverFront);
                 tag.add_frame(id3::Frame::with_content(
                     "APIC",
@@ -273,7 +276,7 @@ fn write_file_tags_blocking(filePath: String, tags: WriteTagData) -> Result<(), 
             if tags.remove_cover {
                 tag.remove_picture_type(metaflac::block::PictureType::CoverFront);
             } else if let Some(cover_bytes) = new_cover {
-                let mime = detect_image_mime(&cover_bytes);
+                let mime = detect_image_mime(&cover_bytes)?;
                 tag.remove_picture_type(metaflac::block::PictureType::CoverFront);
                 tag.add_picture(&mime, metaflac::block::PictureType::CoverFront, cover_bytes);
             }
@@ -288,13 +291,28 @@ fn write_file_tags_blocking(filePath: String, tags: WriteTagData) -> Result<(), 
 }
 
 /// Detect MIME type from image magic bytes.
-fn detect_image_mime(bytes: &[u8]) -> String {
+fn detect_image_mime(bytes: &[u8]) -> Result<String, String> {
     if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
-        "image/jpeg".to_string()
+        Ok("image/jpeg".to_string())
     } else if bytes.starts_with(&[0x89, 0x50, 0x4E, 0x47]) {
-        "image/png".to_string()
+        Ok("image/png".to_string())
     } else {
-        "image/jpeg".to_string() // default
+        Err("Cover art must be a valid JPEG or PNG image".to_string())
     }
 }
 
+fn read_cover_image(path: &str) -> Result<Vec<u8>, String> {
+    let metadata = std::fs::metadata(path)
+        .map_err(|e| format!("Failed to inspect cover image: {}", e))?;
+    if !metadata.is_file() {
+        return Err("Cover image path is not a file".to_string());
+    }
+    if metadata.len() > MAX_COVER_ART_BYTES {
+        return Err(format!(
+            "Cover image is too large (maximum {} MiB)",
+            MAX_COVER_ART_BYTES / 1024 / 1024
+        ));
+    }
+
+    std::fs::read(path).map_err(|e| format!("Failed to read cover image: {}", e))
+}

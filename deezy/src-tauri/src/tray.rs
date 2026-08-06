@@ -129,7 +129,13 @@ pub fn update_tray_menu(app: &AppHandle, downloads_active: bool, downloads_pause
         } else {
             "Pause Downloads"
         };
-        let pause_resume = MenuItem::with_id(app, "pause_resume", pause_text, downloads_active, None::<&str>)?;
+        let pause_resume = MenuItem::with_id(
+            app,
+            "pause_resume",
+            pause_text,
+            downloads_active || downloads_paused,
+            None::<&str>,
+        )?;
         
         let separator2 = PredefinedMenuItem::separator(app)?;
         let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;

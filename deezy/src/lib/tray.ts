@@ -105,7 +105,7 @@ class TrayManager {
     const queue = get(downloadQueue);
     const paused = get(pausedDownloads);
 
-    const downloadsActive = active > 0 || queue.length > 0;
+    const downloadsActive = active > 0 || queue.some(item => !paused.has(String(item.track.id)));
     const downloadsPaused = paused.size > 0;
 
     try {
