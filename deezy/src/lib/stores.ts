@@ -20,6 +20,11 @@ export interface AppSettings {
   close_to_tray: boolean;
 }
 
+export interface ArlStorageStatus {
+  storage: 'keyring' | 'plain_file' | null;
+  reason: string | null;
+}
+
 export interface TrayStatusUpdate extends Record<string, unknown> {
   downloadsActive: boolean;
   downloadsPaused: boolean;
@@ -104,4 +109,3 @@ export const audioPlayer: Writable<AudioPlayerState> = writable({
   duration: 0,
   volume: DEFAULT_VOLUME,
 });
-

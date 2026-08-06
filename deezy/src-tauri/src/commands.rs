@@ -1,7 +1,7 @@
 use crate::deezer::download;
 use crate::deezer::models::{AlbumResult, ArtistResult, DownloadResult, FileTagData, PlaylistResult, SearchResult, WriteTagData};
 use crate::deezer::DeezerClient;
-use crate::settings::Settings;
+use crate::settings::{ArlStorageStatus, Settings};
 use crate::themes as theme_store;
 use crate::tray as app_tray;
 use crate::AppState;

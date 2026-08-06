@@ -19,6 +19,16 @@ pub async fn get_settings(
 }
 
 #[tauri::command]
+/// Returns the persisted ARL storage location while serializing access with settings writes.
+pub async fn get_arl_storage_status(
+    state: tauri::State<'_, AppState>,
+    app: AppHandle,
+) -> Result<ArlStorageStatus, String> {
+    let _settings_io = state.settings_io.lock().await;
+    run_blocking(move || Ok(crate::settings::arl_storage_status(&app))).await
+}
+
+#[tauri::command]
 pub async fn save_settings(
     new_settings: Settings,
     state: tauri::State<'_, AppState>,
@@ -124,4 +134,3 @@ pub async fn clear_search_history(
     *state.settings.lock().await = settings;
     Ok(())
 }
-

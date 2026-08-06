@@ -13,7 +13,8 @@
     type FolderStructure,
     type QualityOption,
     type UserInfo,
-    type Theme
+    type Theme,
+    type ArlStorageStatus
   } from '$lib/stores';
   import { notificationManager } from '$lib/notifications';
   import { _, locale } from 'svelte-i18n';
@@ -43,6 +44,8 @@
   let statusType = $state<'success' | 'error' | 'info'>('info');
   let isFreeAccount = $derived(Boolean($userInfo?.is_free_account));
   let isLoggedIn = $state(false);
+  let arlStorage = $state<ArlStorageStatus | null>(null);
+  let arlStoredInPlainFile = $derived(arlStorage?.storage === 'plain_file');
 
   const VALID_QUALITIES = ['MP3_128', 'MP3_320', 'FLAC'] as const;
   const MIN_ARL_LENGTH = 100;
@@ -73,6 +76,7 @@
 
     void (async () => {
       arl = $settingsArlDraft;
+
       try {
         const settings = await invoke<AppSettings>('get_settings');
         if (settings.output_dir) outputDir = settings.output_dir;
@@ -94,6 +98,8 @@
       } catch {
         // First run
       }
+
+      await refreshArlStorage();
 
       // Initialize notification manager
       notificationManager.initialize();
@@ -146,6 +152,14 @@
     return { valid: true };
   }
   
+  async function refreshArlStorage(): Promise<void> {
+    try {
+      arlStorage = await invoke<ArlStorageStatus>('get_arl_storage_status');
+    } catch (err) {
+      console.error('Failed to read credential storage status:', err);
+    }
+  }
+
   async function saveSettings(): Promise<void> {
     const validation = validateSettings();
     if (!validation.valid) {
@@ -173,6 +187,7 @@
         search_history: []
       };
       await invoke('save_settings', { newSettings });
+      await refreshArlStorage();
 
       notificationManager.setEnabled(enableNotifications);
       notificationsEnabled.set(enableNotifications);
@@ -296,13 +311,33 @@
       <p class="form-hint">
         {$_('settings.arl.hint')}
       </p>
-      {#if isLoggedIn && !arl}
+      {#if arlStoredInPlainFile}
+        <div class="arl-storage-warning">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <div>
+            <strong>{$_('settings.arl.insecureStorageTitle')}</strong>
+            <p>{$_('settings.arl.insecureStorageHint')}</p>
+            {#if arlStorage?.reason}
+              <p class="arl-storage-reason">{arlStorage.reason}</p>
+            {/if}
+          </div>
+        </div>
+      {/if}
+      {#if isLoggedIn && !arl && arlStorage?.storage}
         <div class="arl-saved-indicator">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
             <polyline points="22 4 12 14.01 9 11.01"/>
           </svg>
-          <span>ARL token is securely saved (hidden for security)</span>
+          <span>
+            {arlStoredInPlainFile
+              ? $_('settings.arl.savedPlainFile')
+              : $_('settings.arl.savedKeyring')}
+          </span>
         </div>
       {/if}
       <div class="input-row">
@@ -578,6 +613,37 @@
 
   .arl-saved-indicator svg {
     flex-shrink: 0;
+  }
+
+  .arl-storage-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    border-radius: var(--radius);
+    background: rgba(255, 171, 0, 0.1);
+    border: 1px solid rgba(255, 171, 0, 0.25);
+    color: var(--warning);
+    font-size: 13px;
+  }
+
+  .arl-storage-warning svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .arl-storage-warning p {
+    margin: 4px 0 0;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .arl-storage-reason {
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    overflow-wrap: anywhere;
   }
   
   .input-row {

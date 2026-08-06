@@ -2,6 +2,18 @@
 
 All notable changes to Deezy are documented here.
 
+## [Unreleased]
+
+### Added
+
+- **Optional credential-store fallback** — Deezy can store the ARL in `settings.json` when the OS credential store is unavailable or disabled with `DEEZY_NO_KEYRING`, and clearly warns when plaintext storage is active. On Unix, the fallback file is restricted to owner-only permissions.
+
+### Security
+
+- **Private fallback credentials** — Settings files containing a plaintext ARL reject symlinks and are not used on Unix unless owner-only permissions can be established and verified.
+
+---
+
 ## [0.2.19] - 2026-07-14
 
 ### Fixed

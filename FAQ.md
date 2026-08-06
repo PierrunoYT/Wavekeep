@@ -10,8 +10,10 @@ Current release: **v0.2.19** (see [Changelog](CHANGELOG.md)).
 
 Your ARL is a sensitive session credential that can provide access to your Deezer account.
 
-- **Stored in the OS credential store** — Deezy stores the ARL using Windows Credential Manager, macOS Keychain, or Linux Secret Service.
-- **Excluded from `settings.json`** — Current versions remove the ARL before writing settings to disk. Legacy settings containing an ARL are migrated to the credential store.
+- **Stored securely when available** — Deezy normally stores the ARL using Windows Credential Manager, macOS Keychain, or Linux Secret Service.
+- **Plaintext fallback** — If the OS credential store is unavailable, Deezy stores the ARL in `settings.json` so the app can still run. On Unix systems, Deezy restricts that file to owner-only permissions (`0600`) and refuses to load it if those permissions cannot be established. Settings displays a warning while this fallback is active.
+- **Optional keyring bypass** — Set `DEEZY_NO_KEYRING=1` (`true` and `yes` are also accepted) before starting Deezy to force plaintext storage. Treat `settings.json` as a password file in this mode.
+- **Automatic migration** — When the credential store becomes available again, Deezy moves a plaintext ARL into it and removes the ARL from `settings.json`.
 - **Not returned with settings** — After saving, `get_settings` returns an empty ARL field so the stored credential is not exposed to the renderer again.
 - **Temporarily handled by the frontend** — When you paste an ARL, it exists in the application's frontend memory and is sent to the Rust backend through local Tauri IPC for authentication and storage.
 - **Used only for Deezer authentication** — The current source sends authenticated requests to Deezer endpoints. It does not send the ARL to an application-operated server or analytics provider.
@@ -109,7 +111,7 @@ As a last resort, close Deezy and rename its application-data folder so the app 
 - **macOS:** `~/Library/Application Support/com.pierr.deezy`
 - **Linux:** `$XDG_DATA_HOME/com.pierr.deezy` or `~/.local/share/com.pierr.deezy`
 
-Resetting this folder removes local settings, download history, and custom themes. The ARL is stored separately in the OS credential store and may remain there.
+Resetting this folder removes local settings, download history, and custom themes. If Deezy is using plaintext fallback, it also removes the ARL. An ARL stored in the OS credential store is separate and may remain there.
 
 ### Downloads are stalling or not starting. What do I do?
 

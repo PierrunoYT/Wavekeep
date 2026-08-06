@@ -127,7 +127,11 @@
       "label": "ARL Token",
       "hint": "Log into deezer.com, open DevTools (F12), go to Application > Cookies, and copy the \"arl\" value.",
       "placeholder": "Paste your ARL token here...",
-      "showHide": "Show/hide"
+      "showHide": "Show/hide",
+      "savedKeyring": "ARL token is saved in your OS credential store (hidden for security)",
+      "savedPlainFile": "ARL token is saved (hidden for security)",
+      "insecureStorageTitle": "Secure credential storage unavailable",
+      "insecureStorageHint": "Your ARL is stored as plain text in settings.json. Anyone who can read that file can use your Deezer account. Restart Deezy once your system credential store is available to move it there."
     },
     "outputDir": {
       "label": "Download Folder",

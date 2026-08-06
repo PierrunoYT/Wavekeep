@@ -127,7 +127,11 @@
       "label": "Jeton ARL",
       "hint": "Connectez-vous à deezer.com, ouvrez DevTools (F12), allez dans Application > Cookies et copiez la valeur \"arl\".",
       "placeholder": "Collez votre jeton ARL ici...",
-      "showHide": "Afficher/masquer"
+      "showHide": "Afficher/masquer",
+      "savedKeyring": "Le jeton ARL est enregistré dans le gestionnaire d'identifiants du système (masqué par sécurité)",
+      "savedPlainFile": "Le jeton ARL est enregistré (masqué par sécurité)",
+      "insecureStorageTitle": "Stockage sécurisé des identifiants indisponible",
+      "insecureStorageHint": "Votre ARL est stocké en clair dans settings.json. Toute personne pouvant lire ce fichier peut utiliser votre compte Deezer. Redémarrez Deezy lorsque le gestionnaire d'identifiants du système sera disponible pour l'y déplacer."
     },
     "outputDir": {
       "label": "Dossier de Téléchargement",

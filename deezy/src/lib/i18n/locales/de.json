@@ -127,7 +127,11 @@
       "label": "ARL-Token",
       "hint": "Melden Sie sich bei deezer.com an, öffnen Sie DevTools (F12), gehen Sie zu Anwendung > Cookies und kopieren Sie den \"arl\"-Wert.",
       "placeholder": "Fügen Sie Ihr ARL-Token hier ein...",
-      "showHide": "Anzeigen/Verbergen"
+      "showHide": "Anzeigen/Verbergen",
+      "savedKeyring": "ARL-Token ist im Anmeldeinformationsspeicher des Systems gespeichert (aus Sicherheitsgründen verborgen)",
+      "savedPlainFile": "ARL-Token ist gespeichert (aus Sicherheitsgründen verborgen)",
+      "insecureStorageTitle": "Sicherer Anmeldeinformationsspeicher nicht verfügbar",
+      "insecureStorageHint": "Ihr ARL wird im Klartext in settings.json gespeichert. Wer diese Datei lesen kann, kann Ihr Deezer-Konto nutzen. Starten Sie Deezy neu, sobald der Anmeldeinformationsspeicher des Systems verfügbar ist, um ihn dorthin zu verschieben."
     },
     "outputDir": {
       "label": "Download-Ordner",
