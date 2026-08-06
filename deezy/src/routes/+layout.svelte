@@ -144,6 +144,8 @@
       }
     } catch (err) {
       console.error('Failed to load settings:', err);
+      notificationsEnabled.set(false);
+      notificationManager.setEnabled(false);
       await initI18n('en');
       currentLocale.set('en');
       theme.set('system');
