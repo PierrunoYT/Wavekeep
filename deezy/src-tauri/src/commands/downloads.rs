@@ -57,7 +57,7 @@ async fn execute_download_track(
         match DeezerClient::new(&arl).await {
             Ok(new_client) => {
                 client = new_client.clone();
-                *state.client.lock().await = Some(new_client);
+                install_client_if_current(state, &arl, new_client).await;
             }
             Err(e) => {
                 return Err(format!("Failed to refresh session: {}", e));
@@ -94,7 +94,7 @@ async fn execute_download_track(
             match DeezerClient::new(&arl).await {
                 Ok(new_client) => {
                     client = new_client.clone();
-                    *state.client.lock().await = Some(new_client);
+                    install_client_if_current(state, &arl, new_client).await;
                     let mut retry_quality = quality.clone();
                     if client
                         .user
@@ -128,6 +128,14 @@ async fn execute_download_track(
     result
 }
 
+async fn install_client_if_current(state: &AppState, refreshed_arl: &str, client: DeezerClient) {
+    let _settings_io = state.settings_io.lock().await;
+    let arl_is_current = state.settings.lock().await.arl == refreshed_arl;
+    if arl_is_current {
+        *state.client.lock().await = Some(client);
+    }
+}
+
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn cancel_download(
@@ -142,4 +150,3 @@ pub async fn cancel_download(
         Ok(false)
     }
 }
-

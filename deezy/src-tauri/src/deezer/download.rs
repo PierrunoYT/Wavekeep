@@ -101,6 +101,15 @@ pub async fn download_track(
         .await
         .map_err(|e| format!("Download failed: {}", e))?;
 
+    let status = response.status();
+    if !status.is_success() {
+        return Err(if matches!(status.as_u16(), 401 | 403) {
+            format!("Download authentication token rejected (HTTP {})", status.as_u16())
+        } else {
+            format!("Download server returned HTTP {}", status.as_u16())
+        });
+    }
+
     let total_size_opt = response.content_length();
     if let Some(total_size) = total_size_opt {
         if total_size == 0 {
@@ -124,6 +133,7 @@ pub async fn download_track(
     let mut buffer: Vec<u8> = Vec::new();
     let mut chunk_index = 0u64;
     let mut downloaded = 0u64;
+    let mut received = 0u64;
 
     while let Some(item) = stream.next().await {
         if cancel_flag.load(Ordering::Relaxed) {
@@ -145,6 +155,12 @@ pub async fn download_track(
                 return Err(format!("Stream error: {}", e));
             }
         };
+        received = received.saturating_add(bytes.len() as u64);
+        if received > MAX_TRACK_DOWNLOAD_BYTES {
+            drop(file);
+            cleanup_temp_file_async(&temp_download_path).await;
+            return Err("Download aborted: file exceeds allowed size limit".to_string());
+        }
         buffer.extend_from_slice(&bytes);
 
         while buffer.len() >= 2048 {
@@ -194,6 +210,12 @@ pub async fn download_track(
                 emit_progress(app, track_id, &full_title, percent, "downloading");
             }
         }
+    }
+
+    if received == 0 {
+        drop(file);
+        cleanup_temp_file_async(&temp_download_path).await;
+        return Err("Download failed: empty response".to_string());
     }
 
     // Handle remaining bytes (less than 2048 bytes).
@@ -267,6 +289,7 @@ pub async fn download_track(
     let finalize_dir = download_dir.clone();
     let finalize_stem = base_stem.clone();
     let finalize_ext = ext.to_string();
+    let finalize_cancel_flag = cancel_flag.clone();
     let finalize_task = tokio::task::spawn_blocking(move || {
         finalize_download_file(
             &finalize_temp_path,
@@ -274,6 +297,7 @@ pub async fn download_track(
             &finalize_dir,
             &finalize_stem,
             &finalize_ext,
+            &finalize_cancel_flag,
         )
     });
     let finalize_result = match finalize_task.await {
@@ -292,6 +316,8 @@ pub async fn download_track(
         }
     };
 
+    // Publication is the commit point. Cancellation after this point is too
+    // late and must not remove a valid completed file.
     emit_progress(app, track_id, &full_title, 100.0, "complete");
 
     Ok(DownloadResult {
@@ -650,8 +676,12 @@ fn finalize_download_file(
     download_dir: &Path,
     base_stem: &str,
     ext: &str,
+    cancel_flag: &AtomicBool,
 ) -> Result<PathBuf, String> {
     for counter in 0..1000 {
+        if cancel_flag.load(Ordering::Relaxed) {
+            return Err("Download canceled during file finalization".to_string());
+        }
         let candidate = if counter == 0 {
             preferred_path.to_path_buf()
         } else {
@@ -664,7 +694,7 @@ fn finalize_download_file(
                 return Ok(candidate);
             }
             Err(e) if e.kind() == ErrorKind::AlreadyExists => continue,
-            Err(link_error) => match copy_file_noclobber(temp_path, &candidate) {
+            Err(link_error) => match copy_file_noclobber(temp_path, &candidate, cancel_flag) {
                 Ok(()) => {
                     cleanup_temp_file(temp_path);
                     return Ok(candidate);
@@ -683,15 +713,33 @@ fn finalize_download_file(
     Err("Too many files with the same name".to_string())
 }
 
-fn copy_file_noclobber(source_path: &Path, destination_path: &Path) -> io::Result<()> {
+fn copy_file_noclobber(
+    source_path: &Path,
+    destination_path: &Path,
+    cancel_flag: &AtomicBool,
+) -> io::Result<()> {
+    use std::io::Read;
+
     let mut source = std::fs::File::open(source_path)?;
     let mut destination = std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(destination_path)?;
 
-    let copy_result = io::copy(&mut source, &mut destination)
-        .and_then(|_| destination.flush());
+    let copy_result = (|| {
+        let mut buffer = [0u8; 1024 * 1024];
+        loop {
+            if cancel_flag.load(Ordering::Relaxed) {
+                return Err(io::Error::new(ErrorKind::Interrupted, "download canceled"));
+            }
+            let read = source.read(&mut buffer)?;
+            if read == 0 {
+                break;
+            }
+            destination.write_all(&buffer[..read])?;
+        }
+        destination.flush()
+    })();
     drop(destination);
 
     if let Err(error) = copy_result {
@@ -717,6 +765,7 @@ mod tests {
     use super::{copy_file_noclobber, finalize_download_file};
     use std::io::ErrorKind;
     use std::path::PathBuf;
+    use std::sync::atomic::AtomicBool;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn test_dir(name: &str) -> PathBuf {
@@ -749,6 +798,7 @@ mod tests {
             &dir,
             "Artist - Track",
             ".mp3",
+            &AtomicBool::new(false),
         )
         .expect("finalization should succeed");
 
@@ -768,7 +818,11 @@ mod tests {
         std::fs::write(&destination_path, b"existing audio")
             .expect("destination should be written");
 
-        let error = copy_file_noclobber(&source_path, &destination_path)
+        let error = copy_file_noclobber(
+            &source_path,
+            &destination_path,
+            &AtomicBool::new(false),
+        )
             .expect_err("copy should reject an existing destination");
 
         assert_eq!(error.kind(), ErrorKind::AlreadyExists);

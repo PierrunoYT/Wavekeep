@@ -84,6 +84,7 @@ pub fn run() {
             commands::get_settings,
             commands::get_arl_storage_status,
             commands::save_settings,
+            commands::update_settings,
             commands::pick_folder,
             commands::save_download_history,
             commands::load_download_history,

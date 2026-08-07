@@ -445,24 +445,28 @@ impl Settings {
             return Ok(settings);
         }
 
-        // Migrate: if ARL was stored in the JSON file, move it to keyring
-        if !settings.arl.is_empty() {
-            if save_arl_to_keyring(&settings.arl).is_err() {
+        // A credential already in the keyring is authoritative. This also
+        // prevents stale plaintext left by an interrupted save from replacing it.
+        if let Ok(Some(arl)) = load_arl_from_keyring() {
+            if !arl.is_empty() {
+                let disk_had_arl = !settings.arl.is_empty();
+                settings.arl = arl;
+                if disk_had_arl {
+                    let mut clean = settings.clone();
+                    clean.arl = String::new();
+                    let data = serde_json::to_string_pretty(&clean).map_err(|e| e.to_string())?;
+                    write_private(&path, data.as_bytes())?;
+                }
                 return Ok(settings);
             }
+        }
 
-            // Re-save settings without the ARL in the file
+        // Migrate a legacy plaintext credential only when the keyring is empty.
+        if !settings.arl.is_empty() && save_arl_to_keyring(&settings.arl).is_ok() {
             let mut clean = settings.clone();
             clean.arl = String::new();
             let data = serde_json::to_string_pretty(&clean).map_err(|e| e.to_string())?;
             write_private(&path, data.as_bytes())?;
-        }
-
-        // Load ARL from OS credential store
-        if let Ok(Some(arl)) = load_arl_from_keyring() {
-            if !arl.is_empty() {
-                settings.arl = arl;
-            }
         }
 
         Ok(settings)
@@ -473,32 +477,47 @@ impl Settings {
         self.validate()?;
 
         let path = Self::path(app)?;
-        // Commit the new credential to the private file first. If a later keyring
-        // or redaction step fails, the same new ARL remains authoritative instead
-        // of allowing an older plaintext credential to overwrite the keyring value.
-        let data = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
-        write_private(&path, data.as_bytes())?;
-
         if keyring_enabled() {
+            let previous_arl = load_arl_from_keyring()
+                .map_err(|e| format!("Cannot safely update credential: {}", e))?;
             match save_arl_to_keyring(&self.arl) {
                 Ok(()) => {
                     let mut settings_for_disk = self.clone();
                     settings_for_disk.arl = String::new();
                     let data = serde_json::to_string_pretty(&settings_for_disk)
                         .map_err(|e| e.to_string())?;
-                    write_private(&path, data.as_bytes())?;
+                    if let Err(write_error) = write_private(&path, data.as_bytes()) {
+                        let rollback = match previous_arl {
+                            Some(ref arl) if !arl.is_empty() => save_arl_to_keyring(arl),
+                            _ => delete_arl_from_keyring(),
+                        };
+                        return Err(match rollback {
+                            Ok(()) => write_error,
+                            Err(rollback_error) => format!(
+                                "{}; credential rollback also failed: {}",
+                                write_error, rollback_error
+                            ),
+                        });
+                    }
                 }
                 Err(e) => {
-                    let cleanup = delete_arl_from_keyring()
-                        .err()
-                        .map(|cleanup_error| format!("; {}", cleanup_error))
-                        .unwrap_or_default();
+                    if previous_arl.as_deref().is_some_and(|arl| !arl.is_empty()) {
+                        return Err(format!(
+                            "Secure credential update failed; the previous credential was preserved: {}",
+                            e
+                        ));
+                    }
                     eprintln!(
-                        "Warning: secure credential storage unavailable ({}{}). Storing ARL in settings.json",
-                        e, cleanup
+                        "Warning: secure credential storage unavailable ({}). Storing ARL in settings.json",
+                        e
                     );
+                    let data = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
+                    write_private(&path, data.as_bytes())?;
                 }
             }
+        } else {
+            let data = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
+            write_private(&path, data.as_bytes())?;
         }
 
         Ok(())

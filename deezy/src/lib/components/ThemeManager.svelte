@@ -112,13 +112,9 @@
       
       applyThemeColors(themeData.colors);
       
-      const settings = await invoke<AppSettings>('get_settings');
-      const newSettings: AppSettings = {
-        ...settings,
-        theme: 'custom',
-        custom_theme: themeName
-      };
-      await invoke('save_settings', { newSettings });
+      await invoke('update_settings', {
+        updates: { theme: 'custom', custom_theme: themeName }
+      });
       
       theme.set('custom');
       selectedTheme = themeName;
@@ -135,13 +131,9 @@
     clearThemeColors();
     
     try {
-      const settings = await invoke<AppSettings>('get_settings');
-      const newSettings: AppSettings = {
-        ...settings,
-        theme: 'dark',
-        custom_theme: null
-      };
-      await invoke('save_settings', { newSettings });
+      await invoke('update_settings', {
+        updates: { theme: 'dark', custom_theme: null }
+      });
       
       theme.set('dark');
       selectedTheme = null;

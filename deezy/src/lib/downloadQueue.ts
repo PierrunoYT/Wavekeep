@@ -39,7 +39,7 @@ class DownloadQueueManager {
     const currentDownloads = get(downloads);
     
     const state = currentDownloads.get(trackId);
-    if (state === 'downloading' || state === 'complete') {
+    if (this.activeTrackIds.has(trackId) || ['resolving', 'downloading', 'tagging', 'complete'].includes(state ?? '')) {
       console.log('Track already downloading or complete:', trackId);
       return;
     }
@@ -95,12 +95,13 @@ class DownloadQueueManager {
           continue;
         }
 
-        const item = queue[0];
-        if (!item) {
+        const itemIndex = queue.findIndex(item => !this.isPaused(String(item.track.id)));
+        if (itemIndex < 0) {
           break;
         }
 
-        downloadQueue.update(q => q.slice(1));
+        const item = queue[itemIndex];
+        downloadQueue.update(q => q.filter((_, index) => index !== itemIndex));
         this.downloadTrack(item.track);
       }
     } finally {
@@ -272,6 +273,11 @@ class DownloadQueueManager {
       }
     }
 
+    const queuedItem = get(downloadQueue).find(item => String(item.track.id) === trackId);
+    if (queuedItem) {
+      this.addToHistory(queuedItem.track, trackId);
+    }
+
     this.updateHistoryItem(trackId, { status: 'paused', isPaused: true });
     this.updateDownloadStatus(trackId, 'paused');
   }
@@ -319,6 +325,17 @@ class DownloadQueueManager {
     downloadQueue.set([]);
   }
 
+  async prepareForExit(): Promise<void> {
+    this.clearQueue();
+    const activeTrackIds = this.getActiveTrackIds();
+    await Promise.all(activeTrackIds.map(trackId => this.pauseDownload(trackId)));
+
+    const deadline = Date.now() + 5000;
+    while (this.activeCount > 0 && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+  }
+
   getQueueLength(): number {
     return get(downloadQueue).length;
   }
@@ -347,4 +364,3 @@ class DownloadQueueManager {
 }
 
 export const downloadQueueManager = new DownloadQueueManager();
-

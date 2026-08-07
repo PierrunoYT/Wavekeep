@@ -8,9 +8,21 @@ All notable changes to Deezy are documented here.
 
 - **Optional credential-store fallback** — Deezy can store the ARL in `settings.json` when the OS credential store is unavailable or disabled with `DEEZY_NO_KEYRING`, and clearly warns when plaintext storage is active. On Unix, the fallback file is restricted to owner-only permissions.
 
+### Fixed
+
+- **Download response validation** — Downloads now reject unsuccessful HTTP responses, empty streams, and responses over the safety limit instead of publishing corrupt error bodies as completed audio.
+- **Safe download shutdown** — Exiting Deezy now cancels active work, waits for temporary-file and copy-fallback cleanup, and prevents partial output from being left under a completed filename during a normal quit.
+- **Queue pause and duplicate handling** — Paused queued tracks remain available to resume, the tray Resume action stays enabled, and tracks cannot be queued again while resolving or writing tags.
+- **Atomic settings updates** — Renderer settings changes now patch backend state under one lock, preserving search history and preventing stale theme, locale, notification, and download-setting snapshots from overwriting newer changes.
+- **Tag warning visibility** — Metadata-writing failures are captured by the always-mounted application layout and remain visible on completed downloads.
+- **Cover-art memory limits** — The tag editor accepts only valid JPEG or PNG replacement artwork up to 20 MiB and avoids base64-expanding oversized embedded covers.
+
 ### Security
 
 - **Private fallback credentials** — Settings files containing a plaintext ARL reject symlinks and are not used on Unix unless owner-only permissions can be established and verified.
+- **Validated credential replacement** — A replacement ARL is authenticated before it is persisted; failed keyring or settings writes preserve or restore the previous credential instead of silently destroying a working login.
+- **Keyring-first persistence** — Successful credential-store saves write only redacted settings to disk, and existing keyring credentials remain authoritative over stale plaintext after an interrupted operation.
+- **Session refresh isolation** — A download refreshing an older session can no longer replace a newer authenticated client.
 
 ---
 

@@ -11,9 +11,10 @@ Current release: **v0.2.19** (see [Changelog](CHANGELOG.md)).
 Your ARL is a sensitive session credential that can provide access to your Deezer account.
 
 - **Stored securely when available** — Deezy normally stores the ARL using Windows Credential Manager, macOS Keychain, or Linux Secret Service.
-- **Plaintext fallback** — If the OS credential store is unavailable, Deezy stores the ARL in `settings.json` so the app can still run. On Unix systems, Deezy restricts that file to owner-only permissions (`0600`) and refuses to load it if those permissions cannot be established. Settings displays a warning while this fallback is active.
+- **Plaintext fallback** — If no credential is already stored and the OS credential store is unavailable, Deezy can store the ARL in `settings.json` so the app can still run. On Unix systems, Deezy restricts that file to owner-only permissions (`0600`) and refuses to load it if those permissions cannot be established. Settings displays a warning while this fallback is active.
 - **Optional keyring bypass** — Set `DEEZY_NO_KEYRING=1` (`true` and `yes` are also accepted) before starting Deezy to force plaintext storage. Treat `settings.json` as a password file in this mode.
 - **Automatic migration** — When the credential store becomes available again, Deezy moves a plaintext ARL into it and removes the ARL from `settings.json`.
+- **Safe replacement** — Deezy authenticates a newly entered ARL before replacing the current credential. If secure storage or settings persistence fails, it preserves or restores the previous credential rather than reporting a successful replacement.
 - **Not returned with settings** — After saving, `get_settings` returns an empty ARL field so the stored credential is not exposed to the renderer again.
 - **Temporarily handled by the frontend** — When you paste an ARL, it exists in the application's frontend memory and is sent to the Rust backend through local Tauri IPC for authentication and storage.
 - **Used only for Deezer authentication** — The current source sends authenticated requests to Deezer endpoints. It does not send the ARL to an application-operated server or analytics provider.
@@ -122,6 +123,8 @@ Resetting this folder removes local settings, download history, and custom theme
 - Fully exit Deezy from the tray before restarting it.
 
 The download history is persisted, but queued and active downloads are not restored after the application exits. Restarting therefore clears the current queue. A track can also be unavailable because of catalog or regional restrictions.
+
+When you exit normally through Deezy, active downloads are canceled and partial files are cleaned before the application closes. If shutdown takes longer than usual, Deezy may still be finishing that cleanup; avoid forcibly terminating it if possible.
 
 ### Album covers or audio previews do not load.
 
