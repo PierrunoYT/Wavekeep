@@ -1,6 +1,6 @@
 # Deezy – Frequently Asked Questions
 
-Current release: **v0.2.19** (see [Changelog](CHANGELOG.md)).
+Current release: **v0.2.20** (see [Changelog](CHANGELOG.md)).
 
 ---
 
@@ -19,6 +19,7 @@ Your ARL is a sensitive session credential that can provide access to your Deeze
 - **Temporarily handled by the frontend** — When you paste an ARL, it exists in the application's frontend memory and is sent to the Rust backend through local Tauri IPC for authentication and storage.
 - **Used only for Deezer authentication** — The current source sends authenticated requests to Deezer endpoints. It does not send the ARL to an application-operated server or analytics provider.
 - **Encrypted network connections** — Deezy's backend HTTP client accepts HTTPS URLs only and requires TLS 1.2 or newer.
+- **Restricted remote hosts** — Backend API and media requests, including redirects, are accepted only from HTTPS Deezer and Deezer CDN hosts.
 - **Open source** — You can audit the relevant implementation:
   - Token storage → `src-tauri/src/settings.rs`
   - Login handling → `src-tauri/src/commands/account.rs`
@@ -34,6 +35,10 @@ The current source contains no analytics, telemetry, crash-reporting service, or
 Deezy never asks for your Deezer password, but an ARL is effectively a session credential and should be protected like a password.
 
 Using automated download software is not equivalent to normal browser use. It may violate Deezer's terms of service, and unusual download activity could result in account restrictions or suspension. Use Deezy at your own risk.
+
+### What local files can Deezy access?
+
+The tag editor can read or modify only MP3/FLAC files and cover images selected through Deezy's native file pickers, plus audio files in the configured download folder. Changing the download folder also requires selecting it through the native folder picker. Theme imports and history exports use native open/save dialogs. Deezy separately maintains its settings, download history, and custom themes in its application-data folder.
 
 ---
 
@@ -142,7 +147,7 @@ Short-link domains are not supported. If a valid full URL still fails, update yo
 
 ### How do I update Deezy on Windows?
 
-Deezy `v0.2.19` does not include an automatic updater. Download the latest `.exe` or `.msi` from the [GitHub Releases page](https://github.com/PierrunoYT/Deezy/releases/latest), fully exit Deezy from the system tray, and run the installer.
+Deezy `v0.2.20` does not include an automatic updater. Download the latest `.exe` or `.msi` from the [GitHub Releases page](https://github.com/PierrunoYT/Deezy/releases/latest), fully exit Deezy from the system tray, and run the installer.
 
 Installing a newer version over the existing installation should preserve settings and download history, but keeping a backup of important data is recommended.
 

@@ -4,6 +4,20 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- **Dependency security updates** — Updated the Svelte, SvelteKit, Vite, Tauri, and supporting frontend packages, with secure overrides for vulnerable transitive dependencies. `bun audit` now reports no known frontend vulnerabilities.
+
+### Security
+
+- **Restricted local-file access** — Renderer requests can read or edit only audio and cover files approved through Deezy's native pickers or located in the configured download folder. File-reveal and output-folder operations use the same trusted-path checks.
+- **Validated remote resources** — Backend requests and redirects are limited to HTTPS Deezer and Deezer CDN hosts, preventing untrusted media or API URLs from reaching internal or unrelated services.
+- **Resource limits** — Added size and entry limits for remote API/media responses, editable audio and cover files, settings, custom themes, and download history to prevent excessive memory or disk use.
+
+### Chores
+
+- **Amp orb lifecycle** — Added executable `.agents/setup` and `.agents/resume` scripts that provision Tauri system libraries, Bun, Rust, frontend packages, and Cargo dependencies in a fresh Amp orb.
+
 ---
 
 ## [0.2.20] - 2026-08-07

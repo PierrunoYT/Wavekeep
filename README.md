@@ -59,18 +59,22 @@ Download the latest installer from the [Releases page](https://github.com/Pierru
 
 ### macOS & Linux
 
-No pre-built binaries are available yet. Build from source:
+No pre-built binaries are available yet. Install the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your operating system, plus [Bun](https://bun.sh/) and the stable Rust toolchain, then build from source:
 
 ```bash
 git clone https://github.com/PierrunoYT/Deezy.git
 cd Deezy/deezy
-npm install
-npm run tauri build
+bun install --frozen-lockfile
+bun run tauri build
 ```
 
 Install the output from `src-tauri/target/release/bundle/` (`.dmg` on macOS, `.deb` / `.AppImage` on Linux).
 
-> **Update note:** Deezy does not currently include an automatic updater. Pull the latest source and run `npm run tauri build` again to update a source-built installation.
+> **Update note:** Deezy does not currently include an automatic updater. Pull the latest source, run `bun install --frozen-lockfile`, and run `bun run tauri build` again to update a source-built installation.
+
+### Amp development orbs
+
+Amp automatically runs the executable `.agents/setup` script when creating a fresh orb. It installs the Linux packages and toolchains required by Tauri, installs the locked frontend dependencies, and fetches the Rust dependencies. On resume, `.agents/resume` verifies that the toolchains and frontend dependencies are ready; Deezy has no background services to restart.
 
 ---
 
