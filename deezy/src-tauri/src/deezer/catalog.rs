@@ -20,8 +20,7 @@ impl DeezerClient {
             .await
             .map_err(|e| format!("Search failed: {}", e))?;
 
-        let data: Value = res
-            .json()
+        let data: Value = response_json(res)
             .await
             .map_err(|e| format!("Failed to parse results: {}", e))?;
 
@@ -85,8 +84,7 @@ impl DeezerClient {
             .await
             .map_err(|e| format!("Search failed: {}", e))?;
 
-        let data: Value = res
-            .json()
+        let data: Value = response_json(res)
             .await
             .map_err(|e| format!("Failed to parse results: {}", e))?;
 
@@ -132,13 +130,13 @@ impl DeezerClient {
         // Fetch tracks and album metadata concurrently.
         let (tracks_res, album_data) = tokio::try_join!(
             async {
-                self.http
+                let response = self.http
                     .get(&tracks_url)
                     .query(&[("limit", "500")])
                     .send()
                     .await
-                    .map_err(|e| format!("Failed to get album tracks: {}", e))?
-                    .json::<Value>()
+                    .map_err(|e| format!("Failed to get album tracks: {}", e))?;
+                response_json::<Value>(response)
                     .await
                     .map_err(|e| format!("Failed to parse album tracks: {}", e))
             },
@@ -191,8 +189,7 @@ impl DeezerClient {
             .await
             .map_err(|e| format!("Search failed: {}", e))?;
 
-        let data: Value = res
-            .json()
+        let data: Value = response_json(res)
             .await
             .map_err(|e| format!("Failed to parse results: {}", e))?;
 
@@ -242,8 +239,7 @@ impl DeezerClient {
             .await
             .map_err(|e| format!("Failed to get artist albums: {}", e))?;
 
-        let data: Value = res
-            .json()
+        let data: Value = response_json(res)
             .await
             .map_err(|e| format!("Failed to parse artist albums: {}", e))?;
 
@@ -286,8 +282,7 @@ impl DeezerClient {
             .await
             .map_err(|e| format!("Search failed: {}", e))?;
 
-        let data: Value = res
-            .json()
+        let data: Value = response_json(res)
             .await
             .map_err(|e| format!("Failed to parse results: {}", e))?;
 
@@ -336,8 +331,7 @@ impl DeezerClient {
             .await
             .map_err(|e| format!("Failed to get playlist tracks: {}", e))?;
 
-        let data: Value = res
-            .json()
+        let data: Value = response_json(res)
             .await
             .map_err(|e| format!("Failed to parse playlist tracks: {}", e))?;
 
@@ -375,13 +369,13 @@ impl DeezerClient {
     pub async fn get_track_by_id(&self, track_id: &str) -> Result<SearchResult, String> {
         let url = format!("{}/track/{}", LEGACY_API_URL, track_id);
 
-        let data: Value = self
+        let response = self
             .http
             .get(&url)
             .send()
             .await
-            .map_err(|e| format!("Failed to get track: {}", e))?
-            .json()
+            .map_err(|e| format!("Failed to get track: {}", e))?;
+        let data: Value = response_json(response)
             .await
             .map_err(|e| format!("Failed to parse track: {}", e))?;
 
@@ -414,4 +408,3 @@ impl DeezerClient {
         })
     }
 }
-

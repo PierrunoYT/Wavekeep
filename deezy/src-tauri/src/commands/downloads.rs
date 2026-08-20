@@ -22,6 +22,12 @@ pub async fn download_track(
     // failures that return before the streaming download begins.
     state.download_cancellations.lock().await.remove(&trackId);
 
+    if let Ok(download) = &result {
+        if !download.file_path.is_empty() {
+            grant_audio_file(&state, &download.file_path).await?;
+        }
+    }
+
     result
 }
 

@@ -1,33 +1,20 @@
 use super::*;
 
 #[tauri::command]
-pub async fn show_in_folder(file_path: String) -> Result<(), String> {
-    let path = std::path::PathBuf::from(&file_path);
-
-    if !path.exists() {
-        return Err("File not found".to_string());
-    }
+pub async fn show_in_folder(
+    file_path: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let path = require_audio_file(&state, &file_path).await?;
 
     #[cfg(target_os = "windows")]
     {
-        let absolute = if path.is_absolute() {
-            path.clone()
-        } else {
-            std::env::current_dir()
-                .map_err(|e| format!("Failed to get current directory: {}", e))?
-                .join(&path)
-        };
-
         // Open the parent directory directly; this is more reliable than /select
         // across path formats and still lands users in the song folder.
-        let target_dir = if absolute.is_dir() {
-            absolute
-        } else {
-            absolute
-                .parent()
-                .ok_or("Failed to resolve file parent directory")?
-                .to_path_buf()
-        };
+        let target_dir = path
+            .parent()
+            .ok_or("Failed to resolve file parent directory")?
+            .to_path_buf();
 
         if !target_dir.exists() {
             return Err("Target directory not found".to_string());

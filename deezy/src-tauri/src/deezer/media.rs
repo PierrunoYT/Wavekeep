@@ -108,13 +108,13 @@ impl DeezerClient {
             .await
             .map_err(|e| e.to_string())?;
 
-        res.json().await.map_err(|e| e.to_string())
+        response_json(res).await
     }
 
     pub async fn get_album_cover(&self, cover_id: &str, size: u32) -> Result<Vec<u8>, String> {
         // Cover images should be well under 10 MiB; cap at 10 MiB to prevent
         // an unexpectedly large response from exhausting memory.
-        const MAX_COVER_BYTES: u64 = 10 * 1024 * 1024;
+        const MAX_COVER_BYTES: usize = 10 * 1024 * 1024;
 
         let url = format!(
             "https://e-cdns-images.dzcdn.net/images/cover/{}/{}x{}.jpg",
@@ -122,17 +122,7 @@ impl DeezerClient {
         );
         let res = self.http.get(&url).send().await.map_err(|e| e.to_string())?;
 
-        if let Some(content_length) = res.content_length() {
-            if content_length > MAX_COVER_BYTES {
-                return Err(format!("Cover image too large: {} bytes", content_length));
-            }
-        }
-
-        let bytes = res.bytes().await.map_err(|e| e.to_string())?;
-        if bytes.len() as u64 > MAX_COVER_BYTES {
-            return Err(format!("Cover image too large: {} bytes", bytes.len()));
-        }
-        Ok(bytes.to_vec())
+        response_bytes(res, MAX_COVER_BYTES, "Cover image").await
     }
 
     async fn get_media_url(
@@ -172,7 +162,7 @@ impl DeezerClient {
             .await
             .ok()?;
 
-        let result: Value = res.json().await.ok()?;
+        let result: Value = response_json(res).await.ok()?;
 
         let data = result.get("data")?.as_array()?;
         if data.is_empty() {
@@ -190,6 +180,10 @@ impl DeezerClient {
         }
 
         let url = sources[0]["url"].as_str()?.to_string();
+        let parsed_url = Url::parse(&url).ok()?;
+        if !is_allowed_deezer_url(&parsed_url) {
+            return None;
+        }
         let fmt = media[0]
             .get("format")
             .and_then(|f| f.as_str())
@@ -199,4 +193,3 @@ impl DeezerClient {
         Some((url, fmt))
     }
 }
-

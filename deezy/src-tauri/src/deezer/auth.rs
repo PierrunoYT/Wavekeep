@@ -21,6 +21,13 @@ impl DeezerClient {
         let http = reqwest::Client::builder()
             .default_headers(headers)
             .cookie_provider(jar)
+            .redirect(reqwest::redirect::Policy::custom(|attempt| {
+                if is_allowed_deezer_url(attempt.url()) {
+                    attempt.follow()
+                } else {
+                    attempt.error("redirected to a non-Deezer host")
+                }
+            }))
             .min_tls_version(reqwest::tls::Version::TLS_1_2)
             .https_only(true)
             .connect_timeout(Duration::from_secs(10))
@@ -120,4 +127,3 @@ impl DeezerClient {
         Ok(())
     }
 }
-

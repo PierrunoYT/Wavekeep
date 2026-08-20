@@ -28,8 +28,7 @@ impl DeezerClient {
             .await
             .map_err(|e| format!("API call failed: {}", e))?;
 
-        let data: Value = res
-            .json()
+        let data: Value = response_json(res)
             .await
             .map_err(|e| format!("Failed to parse response: {}", e))?;
 
@@ -49,4 +48,3 @@ impl DeezerClient {
         Ok(data)
     }
 }
-

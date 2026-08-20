@@ -1,12 +1,29 @@
 use super::*;
 
+const MAX_HISTORY_BYTES: u64 = 10 * 1024 * 1024;
+const MAX_HISTORY_ENTRIES: usize = 10_000;
+
+fn validate_history(history: &[serde_json::Value]) -> Result<(), String> {
+    if history.len() > MAX_HISTORY_ENTRIES {
+        return Err(format!(
+            "Download history exceeds the limit of {} entries",
+            MAX_HISTORY_ENTRIES
+        ));
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn save_download_history(history: Vec<serde_json::Value>, app: AppHandle) -> Result<(), String> {
+    validate_history(&history)?;
     run_blocking(move || {
         let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         let path = dir.join("download_history.json");
         let data = serde_json::to_string_pretty(&history).map_err(|e| e.to_string())?;
+        if data.len() as u64 > MAX_HISTORY_BYTES {
+            return Err("Download history is too large to save".to_string());
+        }
         std::fs::write(&path, data).map_err(|e| e.to_string())
     }).await
 }
@@ -17,8 +34,15 @@ pub async fn load_download_history(app: AppHandle) -> Result<Vec<serde_json::Val
         let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
         let path = dir.join("download_history.json");
         if path.exists() {
+            let metadata = std::fs::metadata(&path).map_err(|e| e.to_string())?;
+            if metadata.len() > MAX_HISTORY_BYTES {
+                return Err("Download history file is too large".to_string());
+            }
             let data = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
-            serde_json::from_str(&data).map_err(|e| e.to_string())
+            let history: Vec<serde_json::Value> =
+                serde_json::from_str(&data).map_err(|e| e.to_string())?;
+            validate_history(&history)?;
+            Ok(history)
         } else {
             Ok(vec![])
         }
@@ -31,6 +55,7 @@ pub async fn export_download_history(
     format: String,
     app: AppHandle,
 ) -> Result<String, String> {
+    validate_history(&history)?;
     let extension = match format.as_str() {
         "csv" => "csv",
         "json" => "json",
@@ -100,3 +125,13 @@ fn sanitize_csv_field(value: &str) -> String {
     escaped
 }
 
+#[cfg(test)]
+mod tests {
+    use super::{validate_history, MAX_HISTORY_ENTRIES};
+
+    #[test]
+    fn rejects_excessive_history_entries() {
+        let history = vec![serde_json::Value::Null; MAX_HISTORY_ENTRIES + 1];
+        assert!(validate_history(&history).is_err());
+    }
+}

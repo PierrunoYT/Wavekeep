@@ -6,6 +6,7 @@ use tauri::Manager;
 
 const KEYRING_SERVICE: &str = "com.pierr.deezy";
 const KEYRING_USER: &str = "arl_token";
+const MAX_SETTINGS_BYTES: u64 = 1024 * 1024;
 static TEMP_FILE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -233,6 +234,7 @@ fn enforce_private_file(file: &std::fs::File) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Debug)]
 struct PrivateFileContents {
     data: String,
     hardening_error: Option<String>,
@@ -262,7 +264,13 @@ fn read_private(path: &Path) -> Result<Option<PrivateFileContents>, String> {
     let hardening_error = enforce_private_file(&file).err();
 
     let mut data = String::new();
-    file.read_to_string(&mut data).map_err(|e| e.to_string())?;
+    (&mut file)
+        .take(MAX_SETTINGS_BYTES + 1)
+        .read_to_string(&mut data)
+        .map_err(|e| e.to_string())?;
+    if data.len() as u64 > MAX_SETTINGS_BYTES {
+        return Err("settings.json is too large".to_string());
+    }
     Ok(Some(PrivateFileContents {
         data,
         hardening_error,
@@ -428,6 +436,11 @@ impl Settings {
 
         if self.folder_structure == FolderStructure::Custom && self.custom_folder_template.trim().is_empty() {
             return Err("Custom folder template is required".to_string());
+        }
+
+        let serialized = serde_json::to_vec(self).map_err(|e| e.to_string())?;
+        if serialized.len() as u64 > MAX_SETTINGS_BYTES {
+            return Err("Settings are too large to save".to_string());
         }
 
         Ok(())

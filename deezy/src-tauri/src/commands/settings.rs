@@ -11,6 +11,7 @@ pub async fn get_settings(
         let mut settings = state.settings.lock().await;
         *settings = loaded.clone();
     }
+    let _ = grant_folder(&state, &loaded.output_dir).await;
 
     // Never return ARL to the renderer process.
     let mut safe = loaded;
@@ -34,6 +35,11 @@ pub async fn save_settings(
     state: tauri::State<'_, AppState>,
     app: AppHandle,
 ) -> Result<(), String> {
+    let current_output_dir = state.settings.lock().await.output_dir.clone();
+    if new_settings.output_dir != current_output_dir {
+        require_granted_folder(&state, &new_settings.output_dir).await?;
+    }
+
     let _settings_io = state.settings_io.lock().await;
     let settings = state.settings.lock().await;
     let mut merged = new_settings.clone();
@@ -63,6 +69,14 @@ pub async fn update_settings(
     state: tauri::State<'_, AppState>,
     app: AppHandle,
 ) -> Result<(), String> {
+    if let Some(value) = updates.get("output_dir") {
+        let output_dir: String = serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+        let current_output_dir = state.settings.lock().await.output_dir.clone();
+        if output_dir != current_output_dir {
+            require_granted_folder(&state, &output_dir).await?;
+        }
+    }
+
     let _settings_io = state.settings_io.lock().await;
     let mut settings = state.settings.lock().await.clone();
 
@@ -89,7 +103,10 @@ pub async fn update_settings(
 }
 
 #[tauri::command]
-pub async fn pick_folder(app: AppHandle) -> Result<Option<String>, String> {
+pub async fn pick_folder(
+    state: tauri::State<'_, AppState>,
+    app: AppHandle,
+) -> Result<Option<String>, String> {
     use tauri_plugin_dialog::DialogExt;
 
     let (tx, rx) = tokio::sync::oneshot::channel();
@@ -101,10 +118,11 @@ pub async fn pick_folder(app: AppHandle) -> Result<Option<String>, String> {
             let _ = tx.send(folder_path.map(|p| p.to_string()));
         });
 
-    match rx.await {
-        Ok(path) => Ok(path),
-        Err(_) => Ok(None),
+    let path = rx.await.unwrap_or(None);
+    if let Some(ref path) = path {
+        grant_folder(&state, path).await?;
     }
+    Ok(path)
 }
 
 #[tauri::command]

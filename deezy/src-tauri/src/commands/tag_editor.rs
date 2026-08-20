@@ -1,12 +1,16 @@
 use super::*;
 
 const MAX_COVER_ART_BYTES: u64 = 20 * 1024 * 1024;
+const MAX_AUDIO_FILE_BYTES: u64 = 1024 * 1024 * 1024;
 
 // ── Tag Editor ────────────────────────────────────────────────────────────────
 
 /// Open a file picker limited to MP3 and FLAC files.
 #[tauri::command]
-pub async fn pick_audio_file(app: AppHandle) -> Result<Option<String>, String> {
+pub async fn pick_audio_file(
+    state: tauri::State<'_, AppState>,
+    app: AppHandle,
+) -> Result<Option<String>, String> {
     let (tx, rx) = tokio::sync::oneshot::channel();
 
     app.dialog()
@@ -17,15 +21,19 @@ pub async fn pick_audio_file(app: AppHandle) -> Result<Option<String>, String> {
             let _ = tx.send(file_path.map(|p| p.to_string()));
         });
 
-    match rx.await {
-        Ok(path) => Ok(path),
-        Err(_) => Ok(None),
+    let path = rx.await.unwrap_or(None);
+    if let Some(ref path) = path {
+        grant_audio_file(&state, path).await?;
     }
+    Ok(path)
 }
 
 /// Open a file picker limited to image files (for cover art replacement).
 #[tauri::command]
-pub async fn pick_cover_image(app: AppHandle) -> Result<Option<String>, String> {
+pub async fn pick_cover_image(
+    state: tauri::State<'_, AppState>,
+    app: AppHandle,
+) -> Result<Option<String>, String> {
     let (tx, rx) = tokio::sync::oneshot::channel();
 
     app.dialog()
@@ -36,17 +44,25 @@ pub async fn pick_cover_image(app: AppHandle) -> Result<Option<String>, String> 
             let _ = tx.send(file_path.map(|p| p.to_string()));
         });
 
-    match rx.await {
-        Ok(path) => Ok(path),
-        Err(_) => Ok(None),
+    let path = rx.await.unwrap_or(None);
+    if let Some(ref path) = path {
+        grant_image_file(&state, path).await?;
     }
+    Ok(path)
 }
 
 /// Read an image file from disk and return it as a base64 data URL,
 /// for previewing newly-picked cover art in the UI before saving.
 #[tauri::command]
 #[allow(non_snake_case)]
-pub async fn read_image_as_data_url(filePath: String) -> Result<String, String> {
+pub async fn read_image_as_data_url(
+    filePath: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<String, String> {
+    let filePath = require_image_file(&state, &filePath)
+        .await?
+        .to_string_lossy()
+        .into_owned();
     run_blocking(move || read_image_as_data_url_blocking(filePath)).await
 }
 
@@ -62,7 +78,14 @@ fn read_image_as_data_url_blocking(file_path: String) -> Result<String, String> 
 /// Read metadata tags from an MP3 or FLAC file.
 #[tauri::command]
 #[allow(non_snake_case)]
-pub async fn read_file_tags(filePath: String) -> Result<FileTagData, String> {
+pub async fn read_file_tags(
+    filePath: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<FileTagData, String> {
+    let filePath = require_audio_file(&state, &filePath)
+        .await?
+        .to_string_lossy()
+        .into_owned();
     run_blocking(move || read_file_tags_blocking(filePath)).await
 }
 
@@ -72,10 +95,7 @@ fn read_file_tags_blocking(filePath: String) -> Result<FileTagData, String> {
     use base64::engine::general_purpose::STANDARD as B64;
 
     let path = std::path::Path::new(&filePath);
-
-    if !path.exists() {
-        return Err("File not found".to_string());
-    }
+    validate_audio_file(path)?;
 
     let ext = path
         .extension()
@@ -172,17 +192,30 @@ fn read_file_tags_blocking(filePath: String) -> Result<FileTagData, String> {
 /// Write metadata tags to an MP3 or FLAC file.
 #[tauri::command]
 #[allow(non_snake_case)]
-pub async fn write_file_tags(filePath: String, tags: WriteTagData) -> Result<(), String> {
+pub async fn write_file_tags(
+    filePath: String,
+    mut tags: WriteTagData,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let filePath = require_audio_file(&state, &filePath)
+        .await?
+        .to_string_lossy()
+        .into_owned();
+    if let Some(cover_path) = tags.new_cover_path.take() {
+        tags.new_cover_path = Some(
+            require_image_file(&state, &cover_path)
+                .await?
+                .to_string_lossy()
+                .into_owned(),
+        );
+    }
     run_blocking(move || write_file_tags_blocking(filePath, tags)).await
 }
 
 #[allow(non_snake_case)]
 fn write_file_tags_blocking(filePath: String, tags: WriteTagData) -> Result<(), String> {
     let path = std::path::Path::new(&filePath);
-
-    if !path.exists() {
-        return Err("File not found".to_string());
-    }
+    validate_audio_file(path)?;
 
     let ext = path
         .extension()
@@ -315,4 +348,16 @@ fn read_cover_image(path: &str) -> Result<Vec<u8>, String> {
     }
 
     std::fs::read(path).map_err(|e| format!("Failed to read cover image: {}", e))
+}
+
+fn validate_audio_file(path: &std::path::Path) -> Result<(), String> {
+    let metadata = std::fs::metadata(path)
+        .map_err(|e| format!("Failed to inspect audio file: {}", e))?;
+    if !metadata.is_file() {
+        return Err("Audio path is not a file".to_string());
+    }
+    if metadata.len() > MAX_AUDIO_FILE_BYTES {
+        return Err("Audio file is too large to edit".to_string());
+    }
+    Ok(())
 }

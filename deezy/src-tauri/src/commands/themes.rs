@@ -49,9 +49,7 @@ pub async fn import_theme_file(app: AppHandle) -> Result<String, String> {
     };
 
     run_blocking(move || {
-        let data = std::fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
-        let theme: theme_store::CustomTheme = serde_json::from_str(&data).map_err(|e| e.to_string())?;
-        theme.validate()?;
+        let theme = theme_store::read_theme_file(std::path::Path::new(&file_path))?;
         theme_store::save_custom_theme(&app, &theme)?;
         Ok(theme.name)
     }).await

@@ -52,6 +52,7 @@ pub async fn auto_login(
     let settings_io = state.settings_io.lock().await;
     let settings = run_blocking(move || Settings::load(&app)).await?;
     *state.settings.lock().await = settings.clone();
+    let _ = grant_folder(&state, &settings.output_dir).await;
     drop(settings_io);
     if settings.arl.trim().is_empty() {
         return Ok(None);

@@ -5,10 +5,18 @@ mod themes;
 mod tray;
 
 use std::sync::Arc;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use tokio::sync::Mutex;
 use tauri::{Emitter, Manager};
+
+#[derive(Default)]
+pub struct FileGrants {
+    pub audio: HashSet<PathBuf>,
+    pub images: HashSet<PathBuf>,
+    pub folders: HashSet<PathBuf>,
+}
 
 pub struct AppState {
     pub client: Arc<Mutex<Option<deezer::DeezerClient>>>,
@@ -16,6 +24,7 @@ pub struct AppState {
     pub settings_io: Arc<Mutex<()>>,
     pub tray_state: tray::TrayState,
     pub download_cancellations: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
+    pub file_grants: Arc<Mutex<FileGrants>>,
 }
 
 pub fn run() {
@@ -29,6 +38,7 @@ pub fn run() {
             settings_io: Arc::new(Mutex::new(())),
             tray_state: tray::TrayState::new(),
             download_cancellations: Arc::new(Mutex::new(HashMap::new())),
+            file_grants: Arc::new(Mutex::new(FileGrants::default())),
         })
         .setup(|app| {
             // Create system tray

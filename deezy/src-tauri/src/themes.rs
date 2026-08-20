@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tauri::Manager;
 
+const MAX_THEME_BYTES: u64 = 1024 * 1024;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThemeColors {
     #[serde(rename = "bg-darkest")]
@@ -133,10 +135,7 @@ pub fn load_custom_theme(app: &tauri::AppHandle, theme_name: &str) -> Result<Cus
         return Err(format!("Theme '{}' not found", theme_name));
     }
 
-    let data = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let theme: CustomTheme = serde_json::from_str(&data).map_err(|e| e.to_string())?;
-    theme.validate()?;
-    Ok(theme)
+    read_theme_file(&path)
 }
 
 pub fn save_custom_theme(app: &tauri::AppHandle, theme: &CustomTheme) -> Result<(), String> {
@@ -147,7 +146,25 @@ pub fn save_custom_theme(app: &tauri::AppHandle, theme: &CustomTheme) -> Result<
     let path = dir.join(format!("{}.json", filename));
 
     let data = serde_json::to_string_pretty(theme).map_err(|e| e.to_string())?;
+    if data.len() as u64 > MAX_THEME_BYTES {
+        return Err("Theme is too large to save".to_string());
+    }
     std::fs::write(&path, data).map_err(|e| e.to_string())
+}
+
+pub fn read_theme_file(path: &std::path::Path) -> Result<CustomTheme, String> {
+    let metadata = std::fs::metadata(path).map_err(|e| e.to_string())?;
+    if !metadata.is_file() {
+        return Err("Theme path is not a file".to_string());
+    }
+    if metadata.len() > MAX_THEME_BYTES {
+        return Err("Theme file is too large".to_string());
+    }
+
+    let data = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let theme: CustomTheme = serde_json::from_str(&data).map_err(|e| e.to_string())?;
+    theme.validate()?;
+    Ok(theme)
 }
 
 pub fn delete_custom_theme(app: &tauri::AppHandle, theme_name: &str) -> Result<(), String> {
