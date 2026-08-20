@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+run_step() {
+  local label="$1"
+  shift
+  printf '\n==> %s\n' "$label"
+  time "$@"
+}
+
+install_system_dependencies() {
+  local packages=(
+    build-essential
+    curl
+    file
+    libayatana-appindicator3-dev
+    librsvg2-dev
+    libssl-dev
+    libwebkit2gtk-4.1-dev
+    libxdo-dev
+    patchelf
+    pkg-config
+  )
+  local missing=()
+  local package
+
+  for package in "${packages[@]}"; do
+    if ! dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -Fq 'install ok installed'; then
+      missing+=("$package")
+    fi
+  done
+
+  if ((${#missing[@]} == 0)); then
+    echo "System dependencies are already installed."
+    return
+  fi
+
+  sudo apt-get update
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${missing[@]}"
+}
+
+install_bun() {
+  if command -v bun >/dev/null 2>&1; then
+    bun --version
+    return
+  fi
+
+  curl -fsSL https://bun.sh/install | bash
+  export BUN_INSTALL="$HOME/.bun"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+  bun --version
+}
+
+install_rust() {
+  if [[ -x "$HOME/.cargo/bin/rustup" ]]; then
+    "$HOME/.cargo/bin/rustup" toolchain install stable --profile minimal
+    "$HOME/.cargo/bin/rustup" default stable
+  elif command -v cargo >/dev/null 2>&1; then
+    cargo --version
+    return
+  else
+    curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs |
+      sh -s -- -y --profile minimal --default-toolchain stable
+  fi
+
+  # shellcheck disable=SC1091
+  source "$HOME/.cargo/env"
+  cargo --version
+}
+
+persist_toolchain_paths() {
+  local profile="$HOME/.bash_profile"
+  local marker="# Deezy orb toolchains"
+
+  touch "$profile"
+  if ! grep -Fqx "$marker" "$profile"; then
+    cat >>"$profile" <<'EOF'
+
+# Deezy orb toolchains
+if [[ -f "$HOME/.cargo/env" ]]; then
+  source "$HOME/.cargo/env"
+fi
+if [[ -d "$HOME/.bun/bin" ]]; then
+  export BUN_INSTALL="$HOME/.bun"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+fi
+EOF
+  fi
+}
+
+install_frontend_dependencies() {
+  cd "$repo_root/deezy"
+  bun install --frozen-lockfile
+}
+
+install_backend_dependencies() {
+  cargo fetch --manifest-path "$repo_root/deezy/src-tauri/Cargo.toml"
+}
+
+run_step "Installing system dependencies" install_system_dependencies
+run_step "Ensuring Bun is available" install_bun
+run_step "Ensuring Rust is available" install_rust
+run_step "Persisting toolchain paths" persist_toolchain_paths
+run_step "Installing frontend dependencies" install_frontend_dependencies
+run_step "Fetching backend dependencies" install_backend_dependencies
+
+echo
+echo "Orb setup complete."

@@ -111,3 +111,6 @@ coverage/
 .cache/
 .parcel-cache/
 .eslintcache
+
+# Amp orb portals
+.amp/portals/*
