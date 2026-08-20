@@ -4,6 +4,10 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+---
+
+## [0.2.21] - 2026-08-20
+
 ### Changed
 
 - **Dependency security updates** — Updated the Svelte, SvelteKit, Vite, Tauri, and supporting frontend packages, with secure overrides for vulnerable transitive dependencies. `bun audit` now reports no known frontend vulnerabilities.
