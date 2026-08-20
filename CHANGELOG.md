@@ -34,6 +34,7 @@ All notable changes to Deezy are documented here.
 - **Atomic settings updates** — Renderer settings changes now patch backend state under one lock, preserving search history and preventing stale theme, locale, notification, and download-setting snapshots from overwriting newer changes.
 - **Tag warning visibility** — Metadata-writing failures are captured by the always-mounted application layout and remain visible on completed downloads.
 - **Cover-art memory limits** — The tag editor accepts only valid JPEG or PNG replacement artwork up to 20 MiB and avoids base64-expanding oversized embedded covers.
+- **Disabled notification races** — Turning notifications off now clears pending notifications and prevents in-flight permission checks or queued deliveries from showing notifications after they have been disabled.
 
 ### Security
 
