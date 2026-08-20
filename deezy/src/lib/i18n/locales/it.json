@@ -90,7 +90,8 @@
             "editTags": "Modifica tag"
         },
         "quality": {
-            "label": "Qualità"
+            "label": "Qualità",
+            "requested": "Richiesta"
         },
         "queue": {
             "title": "Coda di Download",

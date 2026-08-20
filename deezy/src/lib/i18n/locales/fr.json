@@ -90,7 +90,8 @@
       "editTags": "Modifier les tags"
     },
     "quality": {
-      "label": "Qualité"
+      "label": "Qualité",
+      "requested": "Demandée"
     },
     "queue": {
       "title": "File d'Attente",

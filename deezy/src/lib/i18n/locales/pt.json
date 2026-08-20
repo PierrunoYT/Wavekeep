@@ -90,7 +90,8 @@
             "editTags": "Editar tags"
         },
         "quality": {
-            "label": "Qualidade"
+            "label": "Qualidade",
+            "requested": "Solicitada"
         },
         "queue": {
             "title": "Fila de Transferências",

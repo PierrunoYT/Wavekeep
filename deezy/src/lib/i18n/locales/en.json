@@ -90,7 +90,8 @@
       "editTags": "Edit tags"
     },
     "quality": {
-      "label": "Quality"
+      "label": "Quality",
+      "requested": "Requested"
     },
     "queue": {
       "title": "Download Queue",

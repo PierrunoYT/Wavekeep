@@ -90,7 +90,8 @@
       "editTags": "Tags bearbeiten"
     },
     "quality": {
-      "label": "Qualität"
+      "label": "Qualität",
+      "requested": "Angefordert"
     },
     "queue": {
       "title": "Download-Warteschlange",

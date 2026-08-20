@@ -90,7 +90,8 @@
       "editTags": "Editar etiquetas"
     },
     "quality": {
-      "label": "Qualidad"
+      "label": "Calidad",
+      "requested": "Solicitado"
     },
     "queue": {
       "title": "Cola de Descargas",
