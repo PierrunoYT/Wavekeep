@@ -89,6 +89,10 @@
       "retry": "Réessayer le téléchargement",
       "editTags": "Modifier les tags"
     },
+    "quality": {
+      "label": "Qualité",
+      "requested": "Demandée"
+    },
     "queue": {
       "title": "File d'Attente",
       "empty": "La file est vide",

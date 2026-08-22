@@ -89,6 +89,10 @@
       "retry": "Retry download",
       "editTags": "Edit tags"
     },
+    "quality": {
+      "label": "Quality",
+      "requested": "Requested"
+    },
     "queue": {
       "title": "Download Queue",
       "empty": "Queue is empty",

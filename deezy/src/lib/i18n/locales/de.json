@@ -89,6 +89,10 @@
       "retry": "Download wiederholen",
       "editTags": "Tags bearbeiten"
     },
+    "quality": {
+      "label": "Qualität",
+      "requested": "Angefordert"
+    },
     "queue": {
       "title": "Download-Warteschlange",
       "empty": "Warteschlange ist leer",

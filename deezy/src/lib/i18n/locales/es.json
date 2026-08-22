@@ -89,6 +89,10 @@
       "retry": "Reintentar descarga",
       "editTags": "Editar etiquetas"
     },
+    "quality": {
+      "label": "Calidad",
+      "requested": "Solicitado"
+    },
     "queue": {
       "title": "Cola de Descargas",
       "empty": "La cola está vacía",
