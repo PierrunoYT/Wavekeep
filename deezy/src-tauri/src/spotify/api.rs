@@ -5,7 +5,8 @@ use serde_json::Value;
 
 use super::auth::SpotifyClient;
 use super::{ap, pathfinder};
-use super::{read_capped, track_key, validate_id, MAX_RESPONSE_BYTES};
+use super::{track_key, validate_id, MAX_RESPONSE_BYTES};
+use crate::audio::read_capped;
 
 pub(super) const API: &str = "https://api.spotify.com/v1";
 const API_HOST: &str = "api.spotify.com";
@@ -32,6 +33,20 @@ pub struct SpotifyTrack {
     pub release_date: Option<String>,
     pub isrc: Option<String>,
     pub provider: String,
+}
+
+impl From<&SpotifyTrack> for crate::tags::TrackTags {
+    fn from(track: &SpotifyTrack) -> Self {
+        Self {
+            title: track.title.clone(),
+            artist: track.artist.clone(),
+            album: track.album.clone(),
+            track_number: track.track_number,
+            disc_number: track.disc_number,
+            release_date: track.release_date.clone(),
+            isrc: track.isrc.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]

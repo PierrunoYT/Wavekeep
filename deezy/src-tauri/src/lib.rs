@@ -1,3 +1,4 @@
+mod audio;
 mod commands;
 mod deezer;
 mod logging;
@@ -6,6 +7,7 @@ mod paths;
 mod settings;
 mod soundcloud;
 mod spotify;
+mod tags;
 mod themes;
 mod tray;
 mod widevine;

@@ -318,7 +318,7 @@ async fn premium_profile(http: &reqwest::Client, access_token: &str) -> Result<P
             .and_then(|value| value.parse::<u64>().ok())
             .unwrap_or(1)
             .max(1);
-        let bytes = super::read_capped(response, super::MAX_RESPONSE_BYTES, "Spotify response")
+        let bytes = crate::audio::read_capped(response, super::MAX_RESPONSE_BYTES, "Spotify response")
             .await
             .map_err(AccountCheckError::Unavailable)?;
         let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap_or(serde_json::Value::Null);

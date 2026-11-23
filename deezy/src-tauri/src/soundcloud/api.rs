@@ -7,7 +7,7 @@ use serde_json::Value;
 use url::Url;
 
 use super::{track_key, validate_id};
-use crate::spotify::read_capped;
+use crate::audio::read_capped;
 
 const API: &str = "https://api-v2.soundcloud.com";
 const HOME_PAGE: &str = "https://soundcloud.com/";
@@ -117,7 +117,7 @@ pub struct Resolved {
 }
 
 enum Failure {
-    /// 401/403: the `client_id` is no longer accepted.
+    /// 401: the `client_id` is no longer accepted.
     Unauthorized,
     Other(String),
 }
@@ -227,7 +227,9 @@ async fn get_json(http: &reqwest::Client, url: Url) -> Result<Value, Failure> {
         .map_err(|e| Failure::Other(format!("SoundCloud request failed: {}", e.without_url())))?;
     let status = response.status();
     match status.as_u16() {
-        401 | 403 => return Err(Failure::Unauthorized),
+        401 => return Err(Failure::Unauthorized),
+        // A refused ID is a 401; a 403 is about the item, so no new ID is fetched for it.
+        403 => return Err(Failure::Other("SoundCloud refused access to this item. It may be private or restricted.".to_string())),
         404 => return Err(Failure::Other("SoundCloud could not find this item. It may be private or removed.".to_string())),
         429 => {
             crate::logging::warn("soundcloud", "Rate limited (429)");

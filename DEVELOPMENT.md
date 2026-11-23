@@ -54,6 +54,7 @@ Paths below are relative to `deezy/`.
 | `src-tauri/src/spotify/` | OAuth/AP sessions, Web API and Pathfinder search, AP catalog metadata, librespot audio streaming, and OGG/FLAC/MP3/M4A tagging (also used by SoundCloud) |
 | `src-tauri/src/soundcloud/` | Anonymous `api-v2` client (client_id lookup, search, catalog, link resolving) and HLS/progressive/DRM downloads |
 | `src-tauri/src/widevine.rs` | Widevine (L3) licence exchange and CENC decryption behind SoundCloud's DRM streams; needs a user-picked `.wvd` device |
+| `src-tauri/src/audio.rs`, `tags.rs` | Helpers shared by the Spotify and SoundCloud engines: capped body reads, cover fetch, progress events, audio magic-byte check, lofty tagging |
 | `src-tauri/src/paths.rs` | Provider-neutral destination paths and safe temp-file finalization shared by all three engines |
 | `src-tauri/src/settings.rs` | Validated settings, credential storage, atomic private-file writes |
 | `src-tauri/src/themes.rs` | Custom theme validation and persistence |
@@ -124,7 +125,7 @@ Spotify separates catalog and download responsibilities:
   releases, silently; the Web API fallback pages up to 1,000. Unavailable individual tracks are skipped, but a completely failed
   track load returns an error.
 - `download.rs` selects the best available audio format and streams through the
-  AP session. `tags.rs` writes the provider-appropriate OGG, FLAC, MP3, or M4A tags.
+  AP session. `tags.rs` (shared with SoundCloud) writes the provider-appropriate OGG, FLAC, MP3, or M4A tags.
 
 OAuth uses `http://127.0.0.1:5588/login`. The AP session (track metadata and
 audio) always logs in with librespot's shared default Client ID, because Spotify

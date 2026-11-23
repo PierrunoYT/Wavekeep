@@ -6,9 +6,7 @@ use lofty::picture::{MimeType, Picture, PictureType};
 use lofty::probe::Probe;
 use lofty::tag::{Accessor, ItemKey, Tag, TagType};
 
-use super::api::SpotifyTrack;
-
-/// The tag fields the Spotify and SoundCloud engines write.
+/// The tag fields the Spotify and SoundCloud engines write (lofty, any container).
 #[derive(Debug, Clone)]
 pub struct TrackTags {
     pub title: String,
@@ -20,20 +18,6 @@ pub struct TrackTags {
     pub disc_number: u32,
     pub release_date: Option<String>,
     pub isrc: Option<String>,
-}
-
-impl From<&SpotifyTrack> for TrackTags {
-    fn from(track: &SpotifyTrack) -> Self {
-        Self {
-            title: track.title.clone(),
-            artist: track.artist.clone(),
-            album: track.album.clone(),
-            track_number: track.track_number,
-            disc_number: track.disc_number,
-            release_date: track.release_date.clone(),
-            isrc: track.isrc.clone(),
-        }
-    }
 }
 
 /// Writes Vorbis comments (OGG/FLAC), ID3v2 (MP3) or MP4 ilst tags plus the

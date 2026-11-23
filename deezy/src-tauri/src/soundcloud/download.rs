@@ -19,8 +19,8 @@ use crate::paths::{
     finalize_download_file, find_existing_download, TrackPathMeta,
 };
 use crate::settings::FolderStructure;
-use crate::spotify::download::{emit_progress, fetch_cover, looks_like};
-use crate::spotify::tags::{self, TrackTags};
+use crate::audio::{emit_progress, fetch_cover, looks_like};
+use crate::tags::{self, TrackTags};
 use crate::widevine;
 
 /// Shown as the requested quality: SoundCloud has no quality setting, the
@@ -473,7 +473,7 @@ async fn fetch_text(http: &reqwest::Client, url: &Url) -> Result<String, String>
     if !response.status().is_success() {
         return Err(format!("SoundCloud playlist request failed ({})", response.status()));
     }
-    let body = crate::spotify::read_capped(response, MAX_PLAYLIST_BYTES, "SoundCloud playlist").await?;
+    let body = crate::audio::read_capped(response, MAX_PLAYLIST_BYTES, "SoundCloud playlist").await?;
     Ok(String::from_utf8_lossy(&body).into_owned())
 }
 
@@ -590,7 +590,7 @@ async fn request_license(http: &reqwest::Client, token: &str, challenge: &[u8]) 
     if !status.is_success() {
         return Err(format!("SoundCloud licence request failed ({})", status));
     }
-    crate::spotify::read_capped(response, MAX_LICENSE_BYTES, "SoundCloud licence").await
+    crate::audio::read_capped(response, MAX_LICENSE_BYTES, "SoundCloud licence").await
 }
 
 /// Fetches one segment into memory (it must be decrypted before it is

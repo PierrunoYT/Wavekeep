@@ -14,7 +14,8 @@ use librespot_core::SpotifyUri;
 use serde_json::{json, Value};
 
 use super::auth::SpotifyClient;
-use super::{read_capped, MAX_RESPONSE_BYTES};
+use super::MAX_RESPONSE_BYTES;
+use crate::audio::read_capped;
 
 const PATHFINDER_URL: &str = "https://api-partner.spotify.com/pathfinder/v2/query";
 const APP_PLATFORM: &str = "Win32_x86_64";

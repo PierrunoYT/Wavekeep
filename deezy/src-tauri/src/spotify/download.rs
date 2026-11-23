@@ -1,9 +1,7 @@
 use std::io::Read;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
 
-use futures::StreamExt;
 use librespot_audio::{AudioDecrypt, AudioFile};
 use librespot_core::{FileId, SpotifyId};
 use librespot_metadata::audio::file::{AudioFileFormat, AudioFiles};
@@ -11,9 +9,11 @@ use tauri::Emitter;
 use tokio::io::AsyncWriteExt;
 
 use super::auth::SpotifyClient;
-use super::{bare_track_id, tags};
+use super::bare_track_id;
+use crate::audio::{emit_progress, fetch_cover, looks_like};
+use crate::tags::{self, TrackTags};
 use crate::deezer::bandwidth::BandwidthLimiter;
-use crate::deezer::models::{DownloadProgress, DownloadResult};
+use crate::deezer::models::DownloadResult;
 use crate::paths::{
     build_download_path, cleanup_temp_file_async, create_temp_download_file,
     finalize_download_file, find_existing_download, TrackPathMeta,
@@ -23,8 +23,6 @@ use crate::settings::FolderStructure;
 const READ_CHUNK: usize = 128 * 1024;
 /// Ask librespot to fetch well ahead of playback speed; we are not playing.
 const FETCH_RATE: usize = 10 * 1024 * 1024;
-const MAX_COVER_BYTES: usize = 20 * 1024 * 1024;
-const COVER_TIMEOUT: Duration = Duration::from_secs(30);
 /// Length of the header Spotify puts in front of the audio (librespot's
 /// `SPOTIFY_OGG_HEADER_END`).
 const SPOTIFY_HEADER_LEN: usize = 0xa7;
@@ -268,7 +266,7 @@ pub async fn download_track(
 
     let cover = fetch_cover(&client.http, &track.cover_medium).await;
     let tag_path = temp_path.clone();
-    let tag_track = tags::TrackTags::from(&track);
+    let tag_track = TrackTags::from(&track);
     let tag_ext = ext.to_string();
     // A panicking tagger (lofty on malformed audio) is a tag failure like any
     // other: the audio is intact.
@@ -348,19 +346,6 @@ fn is_audio_magic(bytes: &[u8]) -> bool {
         || bytes.starts_with(b"ID3")
         || (bytes.len() >= 2 && bytes[0] == 0xff && bytes[1] & 0xe0 == 0xe0)
         || (bytes.len() >= 8 && &bytes[4..8] == b"ftyp")
-}
-
-/// Whether `bytes` begins like audio of the container `ext` names.
-pub(crate) fn looks_like(ext: &str, bytes: &[u8]) -> bool {
-    match ext {
-        ".ogg" => bytes.starts_with(b"OggS"),
-        ".flac" => bytes.starts_with(b"fLaC"),
-        ".mp3" => {
-            bytes.starts_with(b"ID3") || (bytes.len() >= 2 && bytes[0] == 0xff && bytes[1] & 0xe0 == 0xe0)
-        }
-        ".m4a" => bytes.len() >= 8 && &bytes[4..8] == b"ftyp",
-        _ => false,
-    }
 }
 
 /// Where the real audio begins in `head` (the first bytes of the decrypted
@@ -508,60 +493,6 @@ fn label_for(format: AudioFileFormat) -> String {
         OGG_VORBIS_96 | MP3_96 => "SPOTIFY_96".to_string(),
         _ => "SPOTIFY_AAC".to_string(),
     }
-}
-
-pub(crate) async fn fetch_cover(http: &reqwest::Client, url: &str) -> Option<Vec<u8>> {
-    if url.is_empty() {
-        return None;
-    }
-
-    // Bounded, so a stalled server cannot hold the download at "tagging".
-    let response = http
-        .get(url)
-        .timeout(COVER_TIMEOUT)
-        .send()
-        .await
-        .ok()?;
-    if !response.status().is_success() {
-        return None;
-    }
-    if response
-        .content_length()
-        .is_some_and(|length| length > MAX_COVER_BYTES as u64)
-    {
-        return None;
-    }
-
-    // Read in chunks and stop at the cap: a body without a Content-Length
-    // could otherwise be any size.
-    let mut bytes = Vec::new();
-    let mut stream = response.bytes_stream();
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk.ok()?;
-        if chunk.len() > MAX_COVER_BYTES.saturating_sub(bytes.len()) {
-            return None;
-        }
-        bytes.extend_from_slice(&chunk);
-    }
-    (!bytes.is_empty()).then_some(bytes)
-}
-
-pub(crate) fn emit_progress(
-    app: &tauri::AppHandle,
-    track_id: &str,
-    title: &str,
-    percent: f64,
-    status: &str,
-) {
-    let _ = app.emit(
-        "download-progress",
-        DownloadProgress {
-            track_id: track_id.to_string(),
-            title: title.to_string(),
-            percent,
-            status: status.to_string(),
-        },
-    );
 }
 
 #[cfg(test)]
