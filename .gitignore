@@ -75,6 +75,7 @@ TASKS.md
 .DS_Store
 *.sublime-project
 *.sublime-workspace
+.nodecode/
 .cursor/
 
 # OS
