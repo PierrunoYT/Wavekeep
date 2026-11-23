@@ -36,6 +36,10 @@ Treat the ARL like a password. Do not share it, post it in screenshots, or inclu
 
 Yes. Connect Spotify in Settings (a browser login on Spotify's own page), then choose Spotify as the music source. You do not need a Deezer account or ARL. You can also paste a full `open.spotify.com` track, album, artist or playlist link, or a `spotify:` URI, into the music URL field.
 
+### Does Spotify work with a Free account?
+
+No, the Spotify source needs **Spotify Premium**. The library Wavekeep uses to talk to Spotify (librespot) closes the whole program as soon as it connects to a Free account, and nothing appears in the log. Wavekeep therefore checks your account type right after the browser login and refuses to connect with "Spotify Premium is required" instead. Older versions (0.3.0) did not check, so Wavekeep just closed right after the Spotify login; the fix is a Premium account, not deleting credentials or app data. Deezer still works with a Free account.
+
 ### Can I paste a link to download?
 
 Yes. The **music URL** field in Search accepts `deezer.com` and `open.spotify.com` links:
@@ -61,7 +65,7 @@ Deezer links must be full `http(s)://` links with a numeric ID, such as `https:/
 
 Free accounts are always limited to MP3 128 kbps, whatever you choose in Settings.
 
-**Spotify:** Settings offers Normal (96 kbps), High (160 kbps), Very high (320 kbps) and Lossless (FLAC, Premium). Each setting starts at its own bitrate and falls back to the others when Spotify does not supply it. At each bitrate OGG Vorbis is preferred over MP3. FLAC is only requested for Lossless; if a track offers none of the usual formats, Wavekeep takes whatever Spotify lists, such as AAC. Wavekeep does not check your Spotify account type, so what a Free account gets depends on what Spotify serves. Availability varies by track, account and region.
+**Spotify** (Premium only, see [Does Spotify work with a Free account?](#does-spotify-work-with-a-free-account)): Settings offers Normal (96 kbps), High (160 kbps), Very high (320 kbps) and Lossless (FLAC). Each setting starts at its own bitrate and falls back to the others when Spotify does not supply it. At each bitrate OGG Vorbis is preferred over MP3. FLAC is only requested for Lossless; if a track offers none of the usual formats, Wavekeep takes whatever Spotify lists, such as AAC. Availability varies by track and region.
 
 ### Why did my Deezer download fall back to a lower quality?
 

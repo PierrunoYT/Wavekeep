@@ -381,7 +381,7 @@
       },
       "accounts": {
         "title": "Welches Konto brauche ich?",
-        "text": "Für Deezer wird der ARL-Cookie deines Deezer-Kontos benötigt. Spotify braucht ein eigenes Spotify-Konto und eine Anmeldung im Browser. Kostenlose Deezer-Konten sind auf MP3 128 kbit/s beschränkt; Premium schaltet MP3 320 und FLAC frei. Was Spotify liefert, hängt von deinem Konto und vom Titel ab."
+        "text": "Für Deezer wird der ARL-Cookie deines Deezer-Kontos benötigt. Spotify braucht ein Spotify-Premium-Konto und eine Anmeldung im Browser; kostenlose Spotify-Konten können nicht verbunden werden. Kostenlose Deezer-Konten sind auf MP3 128 kbit/s beschränkt; Premium schaltet MP3 320 und FLAC frei. Welche Formate Spotify liefert, hängt vom Titel ab."
       },
       "files": {
         "title": "Wo sind meine Dateien?",

@@ -7,11 +7,11 @@ use super::auth::SpotifyClient;
 use super::{ap, pathfinder};
 use super::{read_capped, track_key, validate_id, MAX_RESPONSE_BYTES};
 
-const API: &str = "https://api.spotify.com/v1";
+pub(super) const API: &str = "https://api.spotify.com/v1";
 const API_HOST: &str = "api.spotify.com";
 
 /// Longest `Retry-After` worth sleeping through before giving up.
-const MAX_RETRY_WAIT_SECS: u64 = 5;
+pub(super) const MAX_RETRY_WAIT_SECS: u64 = 5;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SpotifyTrack {
@@ -347,7 +347,7 @@ fn is_rate_limited(error: &str) -> bool {
     error.contains(RATE_LIMIT_MARKER)
 }
 
-fn rate_limit_message() -> String {
+pub(super) fn rate_limit_message() -> String {
     "Spotify rate limit reached (429). The default client ID is shared by every \
      librespot install, so its Web API quota can be exhausted. Set your own \
      Spotify Client ID in Settings (redirect URI http://127.0.0.1:5588/login) \
@@ -369,7 +369,7 @@ fn is_web_api_link(link: &str) -> bool {
         && url.path().starts_with("/v1/")
 }
 
-fn api_error(body: &Value) -> String {
+pub(super) fn api_error(body: &Value) -> String {
     body["error"]["message"]
         .as_str()
         .or_else(|| body["error"].as_str())
@@ -377,7 +377,7 @@ fn api_error(body: &Value) -> String {
         .to_string()
 }
 
-fn pick_image(images: &Value, target: u32) -> String {
+pub(super) fn pick_image(images: &Value, target: u32) -> String {
     let mut best = String::new();
     let mut best_diff = u32::MAX;
 

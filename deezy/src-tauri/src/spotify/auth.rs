@@ -197,6 +197,9 @@ impl SpotifyClient {
 
 /// `web_client_id` is the user's own client ID (or the default). When it is
 /// not the default, a second login is made for it and used for the Web API.
+///
+/// Nothing is stored and no AP session is opened until the account is known
+/// to be Premium (see `premium_profile`).
 pub async fn login(device_id: &str, web_client_id: &str) -> Result<Arc<SpotifyClient>, String> {
     let token = browser_login(DEFAULT_CLIENT_ID).await.map_err(|e| match e {
         BrowserLoginError::TimedOut => e.to_string(),
@@ -204,7 +207,7 @@ pub async fn login(device_id: &str, web_client_id: &str) -> Result<Arc<SpotifyCl
     })?;
     let oauth = build_oauth(DEFAULT_CLIENT_ID)?;
 
-    let web = if web_client_id == DEFAULT_CLIENT_ID {
+    let web_token = if web_client_id == DEFAULT_CLIENT_ID {
         None
     } else {
         // Let the first tab finish loading before the port is reused.
@@ -227,23 +230,151 @@ pub async fn login(device_id: &str, web_client_id: &str) -> Result<Arc<SpotifyCl
                 }
             }
         };
-        let stored = StoredWebToken {
-            client_id: web_client_id.to_string(),
-            access_token: web_token.access_token.clone(),
-            refresh_token: web_token.refresh_token.clone(),
-            expires_at_unix: instant_to_unix(web_token.expires_at),
-        };
-        if let Err(error) = blocking(move || save_web_token(&stored)).await {
-            crate::logging::warn("spotify", format!("Could not persist the custom Client ID credential: {}", error));
-        }
-        Some(WebAuth {
-            oauth: build_oauth(web_client_id)?,
-            client_id: web_client_id.to_string(),
-            token: RwLock::new(web_token),
-        })
+        Some(web_token)
     };
 
-    connect(oauth, token, device_id, web).await
+    // The custom ID's token draws on its own quota, so it is preferred for
+    // the check; both logins are made in the same browser, for one account.
+    let http = build_http()?;
+    let check_token = web_token.as_ref().unwrap_or(&token);
+    let profile = premium_profile(&http, &check_token.access_token)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let web = match web_token {
+        None => None,
+        Some(web_token) => {
+            let stored = StoredWebToken {
+                client_id: web_client_id.to_string(),
+                access_token: web_token.access_token.clone(),
+                refresh_token: web_token.refresh_token.clone(),
+                expires_at_unix: instant_to_unix(web_token.expires_at),
+            };
+            if let Err(error) = blocking(move || save_web_token(&stored)).await {
+                crate::logging::warn("spotify", format!("Could not persist the custom Client ID credential: {}", error));
+            }
+            Some(WebAuth {
+                oauth: build_oauth(web_client_id)?,
+                client_id: web_client_id.to_string(),
+                token: RwLock::new(web_token),
+            })
+        }
+    };
+
+    let session = open_session(device_id, &token.access_token).await?;
+    finish_connect(session, http, oauth, token, web, profile).await
+}
+
+/// Why `premium_profile` refused to let a session open.
+#[derive(Debug)]
+enum AccountCheckError {
+    /// The account is not Premium (`product` is e.g. `free` or `open`).
+    NotPremium,
+    /// The Web API answered 401: the token is expired or revoked.
+    Unauthorized,
+    /// The account type could not be confirmed (network, 429, bad answer).
+    Unavailable(String),
+}
+
+impl std::fmt::Display for AccountCheckError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AccountCheckError::NotPremium => f.write_str(PREMIUM_REQUIRED_MESSAGE),
+            AccountCheckError::Unauthorized => {
+                f.write_str("Could not check the Spotify account type: Spotify rejected the login (401)")
+            }
+            AccountCheckError::Unavailable(error) => {
+                write!(f, "Could not check the Spotify account type, so Wavekeep did not connect: {}", error)
+            }
+        }
+    }
+}
+
+const PREMIUM_REQUIRED_MESSAGE: &str =
+    "Spotify Premium is required. Spotify Free accounts cannot be used: the Spotify library Wavekeep uses \
+     closes the whole app when it connects to a Free account, so Wavekeep does not connect.";
+
+/// Reads the account from `GET /v1/me` and accepts only Premium.
+///
+/// librespot-core calls `std::process::exit(1)` as soon as the access point
+/// reports a non-Premium account (`Session::check_catalogue`), which ends
+/// Wavekeep without a panic or log line. So this must pass before every
+/// `open_session`, and any doubt (429, network error, missing `product`)
+/// refuses to connect rather than risk that exit.
+async fn premium_profile(http: &reqwest::Client, access_token: &str) -> Result<Profile, AccountCheckError> {
+    let mut throttled = 0;
+    let body = loop {
+        let response = http
+            .get(format!("{}/me", super::api::API))
+            .bearer_auth(access_token)
+            .send()
+            .await
+            .map_err(|e| AccountCheckError::Unavailable(format!("Spotify request failed: {}", e.without_url())))?;
+        let status = response.status();
+        let retry_after = response
+            .headers()
+            .get("retry-after")
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.parse::<u64>().ok())
+            .unwrap_or(1)
+            .max(1);
+        let bytes = super::read_capped(response, super::MAX_RESPONSE_BYTES, "Spotify response")
+            .await
+            .map_err(AccountCheckError::Unavailable)?;
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap_or(serde_json::Value::Null);
+
+        match status.as_u16() {
+            401 => return Err(AccountCheckError::Unauthorized),
+            429 => {
+                crate::logging::warn(
+                    "spotify",
+                    format!("Account check rate limited (Retry-After {}s, attempt {})", retry_after, throttled + 1),
+                );
+                if throttled < 2 && retry_after <= super::api::MAX_RETRY_WAIT_SECS {
+                    throttled += 1;
+                    tokio::time::sleep(Duration::from_secs(retry_after)).await;
+                    continue;
+                }
+                return Err(AccountCheckError::Unavailable(super::api::rate_limit_message()));
+            }
+            _ if !status.is_success() => {
+                return Err(AccountCheckError::Unavailable(format!(
+                    "Spotify API error ({}): {}",
+                    status.as_u16(),
+                    super::api::api_error(&body)
+                )));
+            }
+            _ => break body,
+        }
+    };
+    profile_from_me(&body)
+}
+
+fn profile_from_me(body: &serde_json::Value) -> Result<Profile, AccountCheckError> {
+    let product = body["product"].as_str().unwrap_or_default();
+    if product.is_empty() {
+        return Err(AccountCheckError::Unavailable(
+            "Spotify did not report the account type".to_string(),
+        ));
+    }
+    if product != "premium" {
+        crate::logging::warn("spotify", format!("Account is not Premium ({}); not connecting", product));
+        return Err(AccountCheckError::NotPremium);
+    }
+    let id = body["id"].as_str().unwrap_or_default().to_string();
+    let name = body["display_name"]
+        .as_str()
+        .filter(|name| !name.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| id.clone());
+    let image = Some(super::api::pick_image(&body["images"], 64)).filter(|url| !url.is_empty());
+    Ok(Profile {
+        id,
+        name,
+        product: product.to_string(),
+        country: body["country"].as_str().map(str::to_string),
+        image,
+    })
 }
 
 #[derive(Debug)]
@@ -356,12 +487,44 @@ pub async fn restore(
         }
     }
 
-    let profile = if stored.profile.id.is_empty() {
-        None
-    } else {
-        Some(stored.profile)
-    };
     let web = restore_web(web_client_id).await;
+
+    // Must pass before the AP session opens (see `premium_profile`). The
+    // custom ID's token is preferred for its own quota; a 401 gets one
+    // refresh of the default token, which is then used for the check.
+    let http = build_http()?;
+    let check_token = match &web {
+        Some(web) => web.token.read().await.access_token.clone(),
+        None => token.access_token.clone(),
+    };
+    let checked = match premium_profile(&http, &check_token).await {
+        Err(AccountCheckError::Unauthorized) => {
+            match refresh_with_timeout(&oauth, &token.refresh_token).await {
+                Ok(fresh) => {
+                    token = fresh;
+                    premium_profile(&http, &token.access_token).await
+                }
+                Err(RefreshError::TimedOut) => {
+                    return Err("Spotify did not answer the token refresh in time".to_string());
+                }
+                Err(RefreshError::Failed(_)) => {
+                    let _ = blocking(clear_token).await;
+                    return Ok(None);
+                }
+            }
+        }
+        other => other,
+    };
+    let profile = match checked {
+        Ok(profile) => profile,
+        Err(AccountCheckError::NotPremium) => {
+            // Never retry this account on the next start.
+            let _ = logout().await;
+            return Err(PREMIUM_REQUIRED_MESSAGE.to_string());
+        }
+        // Unavailable (network, 429) keeps the login for the next start.
+        Err(error) => return Err(error.to_string()),
+    };
 
     // A stored token that the AP rejects (for example one issued to another
     // client ID by an older build) gets one refresh with the default client
@@ -389,7 +552,7 @@ pub async fn restore(
             }
         }
     };
-    finish_connect(session, oauth, token, web, profile).await.map(Some)
+    finish_connect(session, http, oauth, token, web, profile).await.map(Some)
 }
 
 /// Restores the Web API credential for the user's own client ID. Without one
@@ -468,26 +631,6 @@ fn build_oauth(client_id: &str) -> Result<OAuthClient, String> {
         .map_err(|e| format!("Spotify OAuth setup failed: {}", e))
 }
 
-async fn connect(
-    oauth: OAuthClient,
-    token: OAuthToken,
-    device_id: &str,
-    web: Option<WebAuth>,
-) -> Result<Arc<SpotifyClient>, String> {
-    connect_with_profile(oauth, token, device_id, web, None).await
-}
-
-async fn connect_with_profile(
-    oauth: OAuthClient,
-    token: OAuthToken,
-    device_id: &str,
-    web: Option<WebAuth>,
-    cached_profile: Option<Profile>,
-) -> Result<Arc<SpotifyClient>, String> {
-    let session = open_session(device_id, &token.access_token).await?;
-    finish_connect(session, oauth, token, web, cached_profile).await
-}
-
 /// The AP session always uses the default client ID; a custom ID is only valid
 /// for the Web API (see `WebAuth`).
 async fn open_session(device_id: &str, access_token: &str) -> Result<Session, String> {
@@ -518,30 +661,16 @@ fn build_http() -> Result<reqwest::Client, String> {
         .map_err(|e| format!("HTTP client error: {}", e))
 }
 
+/// `profile` comes from `premium_profile`, which must have passed before the
+/// session was opened.
 async fn finish_connect(
     session: Session,
+    http: reqwest::Client,
     oauth: OAuthClient,
     token: OAuthToken,
     web: Option<WebAuth>,
-    cached_profile: Option<Profile>,
+    profile: Profile,
 ) -> Result<Arc<SpotifyClient>, String> {
-    let http = build_http()?;
-
-    // The AP already knows the account type and country, so a Web API call is
-    // only needed for a display name we may have cached earlier.
-    let profile = cached_profile.unwrap_or_else(|| Profile {
-        id: session.username(),
-        name: session
-            .get_user_attribute("name")
-            .filter(|name| !name.is_empty())
-            .unwrap_or_else(|| session.username()),
-        product: session
-            .get_user_attribute("type")
-            .unwrap_or_else(|| "free".to_string()),
-        country: Some(session.country()),
-        image: None,
-    });
-
     let stored = StoredToken {
         access_token: token.access_token.clone(),
         refresh_token: token.refresh_token.clone(),
@@ -714,6 +843,30 @@ mod tests {
         let url = url::Url::parse(REDIRECT_URI).unwrap();
         assert_eq!(url.host_str(), Some("127.0.0.1"));
         assert_eq!(url.port(), Some(CALLBACK_PORT));
+    }
+
+    #[test]
+    fn only_premium_accounts_may_open_a_session() {
+        let premium = serde_json::json!({
+            "id": "user1",
+            "display_name": "",
+            "product": "premium",
+            "country": "FR",
+            "images": [{ "url": "https://i.scdn.co/image/a", "width": 64 }]
+        });
+        let profile = profile_from_me(&premium).unwrap();
+        assert_eq!(profile.product, "premium");
+        assert_eq!(profile.name, "user1");
+        assert_eq!(profile.country.as_deref(), Some("FR"));
+        assert_eq!(profile.image.as_deref(), Some("https://i.scdn.co/image/a"));
+
+        for product in ["free", "open"] {
+            let body = serde_json::json!({ "id": "user1", "product": product });
+            assert!(matches!(profile_from_me(&body), Err(AccountCheckError::NotPremium)));
+        }
+        // Without `product` the type is unknown, which must not connect either.
+        let unknown = serde_json::json!({ "id": "user1" });
+        assert!(matches!(profile_from_me(&unknown), Err(AccountCheckError::Unavailable(_))));
     }
 
     #[test]

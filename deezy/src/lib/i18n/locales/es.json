@@ -381,7 +381,7 @@
       },
       "accounts": {
         "title": "¿Qué cuenta necesito?",
-        "text": "Deezer necesita la cookie ARL de tu cuenta de Deezer. Spotify necesita su propia cuenta y un inicio de sesión en el navegador. Las cuentas gratuitas de Deezer se limitan a MP3 128 kbps; Premium desbloquea MP3 320 y FLAC. Lo que entrega Spotify depende de tu cuenta y de la canción."
+        "text": "Deezer necesita la cookie ARL de tu cuenta de Deezer. Spotify necesita una cuenta Spotify Premium y un inicio de sesión en el navegador; las cuentas gratuitas de Spotify no pueden conectarse. Las cuentas gratuitas de Deezer se limitan a MP3 128 kbps; Premium desbloquea MP3 320 y FLAC. Los formatos que entrega Spotify dependen de la canción."
       },
       "files": {
         "title": "¿Dónde están mis archivos?",
