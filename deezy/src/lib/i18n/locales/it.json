@@ -78,7 +78,7 @@
         },
         "artistCard": {
             "albums": "{count, plural, =1 {1 album} other {# album}}",
-            "fans": "{count, number} fan"
+            "fans": "{count} fan"
         },
         "source": {
             "label": "Sorgente musicale",

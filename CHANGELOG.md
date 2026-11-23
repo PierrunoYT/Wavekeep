@@ -10,6 +10,7 @@ All notable changes to Wavekeep (formerly Deezy) are documented here.
 
 ### Fixed
 
+- **"NaN fans" on artist cards** — Artists with 1,000 or more fans showed "NaN fans" in search results in every language; they now show the short count, such as "2.2M fans".
 - **Wavekeep closed right after the Spotify login with a Free account** — The Spotify library Wavekeep uses ends the whole program when it connects to a Spotify Free account, without any error or log line. Wavekeep now checks the account type right after the browser login (and on startup for a saved login) and refuses to connect with "Spotify Premium is required" instead; a saved Free-account login is removed. If the account type cannot be checked (network error or rate limit), Wavekeep does not connect either. The account type and name shown in Settings now come from Spotify's account data, so a Premium account is no longer sometimes shown as Free.
 
 ### Changed
