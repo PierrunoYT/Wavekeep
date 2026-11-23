@@ -84,10 +84,7 @@ pub async fn pick_cdm_file(
 
     let path = rx.await.unwrap_or(None);
     if let Some(ref path) = path {
-        let bytes = tokio::fs::read(path)
-            .await
-            .map_err(|e| format!("Could not read the Widevine device file: {}", e))?;
-        crate::widevine::Device::parse(&bytes)?;
+        crate::widevine::Device::load(std::path::Path::new(path)).await?;
         super::grant_cdm_file(&state, path).await?;
     }
     Ok(path)

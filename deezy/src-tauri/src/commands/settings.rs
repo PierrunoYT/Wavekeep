@@ -36,20 +36,37 @@ pub async fn get_arl_storage_status(
     run_blocking(move || Ok(crate::settings::arl_storage_status(&app))).await
 }
 
+/// Validates a CDM path from a full-settings save. A changed path must
+/// already be picker-approved; keeping or clearing the current one needs none.
+async fn validated_cdm_path(state: &AppState, current: &str, proposed: &str) -> Result<String, String> {
+    let path = proposed.trim();
+    if path != current && !path.is_empty() {
+        require_cdm_file(state, path).await?;
+    }
+    Ok(path.to_string())
+}
+
 #[tauri::command]
 pub async fn save_settings(
     new_settings: Settings,
     state: tauri::State<'_, AppState>,
     app: AppHandle,
 ) -> Result<(), String> {
-    let current_output_dir = state.settings.lock().await.output_dir.clone();
+    let (current_output_dir, current_cdm_path) = {
+        let settings = state.settings.lock().await;
+        (settings.output_dir.clone(), settings.soundcloud_cdm_path.clone())
+    };
     if new_settings.output_dir != current_output_dir {
         require_granted_folder(&state, &new_settings.output_dir).await?;
     }
+    // Full-settings saves are renderer input too. Do not let them turn an
+    // unapproved path into a picker grant when `get_settings` next loads it.
+    let cdm_path = validated_cdm_path(&state, &current_cdm_path, &new_settings.soundcloud_cdm_path).await?;
 
     let _settings_io = state.settings_io.lock().await;
     let settings = state.settings.lock().await;
     let mut merged = new_settings.clone();
+    merged.soundcloud_cdm_path = cdm_path;
 
     // Non-auth settings only. The renderer never sees the ARL and may not
     // replace it here: a new one goes through `login`, which verifies it first.
@@ -211,4 +228,48 @@ pub async fn clear_search_history(
     run_blocking(move || settings_to_save.save(&app)).await?;
     *state.settings.lock().await = settings;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
+
+    fn test_state() -> AppState {
+        AppState {
+            client: Arc::new(Mutex::new(None)),
+            spotify: Arc::new(Mutex::new(None)),
+            settings: Arc::new(Mutex::new(Settings::default())),
+            settings_io: Arc::new(Mutex::new(())),
+            tray_state: crate::tray::TrayState::new(),
+            download_cancellations: Arc::new(Mutex::new(HashMap::new())),
+            file_grants: Arc::new(Mutex::new(crate::FileGrants::default())),
+            bandwidth: Arc::new(crate::deezer::bandwidth::BandwidthLimiter::new()),
+        }
+    }
+
+    #[tokio::test]
+    async fn full_save_cdm_paths_require_an_existing_grant() {
+        let state = test_state();
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("wavekeep-cdm-save-{}-{}", std::process::id(), nonce));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("device.wvd");
+        std::fs::write(&file, b"device").unwrap();
+        let path = file.to_string_lossy().into_owned();
+
+        assert!(validated_cdm_path(&state, "", &path).await.is_err());
+        state.file_grants.lock().await.cdm.insert(std::fs::canonicalize(&file).unwrap());
+        assert_eq!(validated_cdm_path(&state, "", &format!("  {}  ", path)).await.unwrap(), path);
+
+        state.file_grants.lock().await.cdm.clear();
+        assert_eq!(validated_cdm_path(&state, &path, &format!("  {}  ", path)).await.unwrap(), path);
+        assert_eq!(validated_cdm_path(&state, &path, "").await.unwrap(), "");
+        let _ = std::fs::remove_dir_all(dir);
+    }
 }

@@ -802,7 +802,7 @@ Any non-empty `arl` from the renderer is saved to the keyring without verificati
 |---|---|---|
 | RUSTSEC-2026-0258 | `h2` (hyper ← reqwest, librespot-core) | update |
 | RUSTSEC-2026-0194/0195 | `quick-xml` 0.37.5 (tauri-winrt-notification), 0.38.4 (librespot-core), 0.39.4 (plist ← tauri) | parse untrusted XML only in librespot's case; update where possible |
-| RUSTSEC-2023-0071 | `rsa` (librespot-core) | Marvin timing attack; **no fixed version**. librespot uses it to verify the AP server's handshake signature (a public-key operation), while Marvin targets private-key decryption, so practical risk is low (Needs verification of the exact call site) |
+| RUSTSEC-2023-0071 | `rsa` 0.9 (librespot-core) | Marvin timing attack; **no fixed 0.9 version**. librespot uses it to verify the AP server's handshake signature (a public-key operation), while Marvin targets private-key decryption, so practical risk is low (Needs verification of the exact call site). Wavekeep's own Widevine RSA-OAEP/PSS operations use `rsa` 0.10, which contains the constant-time mitigations |
 | RUSTSEC-2026-0204 | `crossbeam-epoch` | update |
 | (unsound) | `tokio` `AsyncFd` | update |
 | unmaintained | `unic-*`, `paste`, `proc-macro-error`, `glib` (Linux) | transitive via tauri/wry |

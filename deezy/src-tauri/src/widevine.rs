@@ -15,14 +15,15 @@ use cbc::Decryptor;
 use cipher::{block_padding::Pkcs7, BlockDecryptMut, KeyIvInit};
 use cmac::Cmac;
 use hmac::{Hmac, Mac};
-use rand::RngCore;
 use rsa::pkcs1::DecodeRsaPrivateKey;
 use rsa::pkcs8::DecodePrivateKey;
 use rsa::pss::SigningKey;
 use rsa::signature::{RandomizedSigner, SignatureEncoding};
-use rsa::{Oaep, RsaPrivateKey};
+use rsa::PrivateKey;
 use sha1::Sha1;
-use sha2::Sha256;
+use sha2::{Digest, Sha256};
+use std::path::Path;
+use tokio::io::AsyncReadExt;
 
 /// `edef8ba9-79d6-4ace-a3c8-27dcd51d21ed`, the Widevine system ID.
 const SYSTEM_ID: [u8; 16] = [
@@ -35,6 +36,9 @@ const MESSAGE_LICENSE: u64 = 2;
 const MESSAGE_ERROR_RESPONSE: u64 = 3;
 const PROTOCOL_VERSION_2_1: u64 = 21;
 const KEY_TYPE_CONTENT: u64 = 2;
+/// Two u16-length-prefixed fields after the seven-byte header. Real device
+/// files are much smaller; this is the largest representable WVD container.
+const MAX_DEVICE_BYTES: u64 = 7 + 2 + u16::MAX as u64 + 2 + u16::MAX as u64;
 
 type Aes128CbcDec = Decryptor<Aes128>;
 
@@ -43,15 +47,32 @@ type Aes128CbcDec = Decryptor<Aes128>;
 /// never logged.
 pub struct Device {
     client_id: Vec<u8>,
-    key: RsaPrivateKey,
+    key: PrivateKey,
 }
 
 impl Device {
+    /// Loads at most one WVD container. `Take` also covers a file that grows
+    /// between opening and reading it.
+    pub async fn load(path: &Path) -> Result<Self, String> {
+        let file = tokio::fs::File::open(path)
+            .await
+            .map_err(|e| format!("Could not read the Widevine device file: {}", e))?;
+        let mut data = Vec::new();
+        file.take(MAX_DEVICE_BYTES + 1)
+            .read_to_end(&mut data)
+            .await
+            .map_err(|e| format!("Could not read the Widevine device file: {}", e))?;
+        Self::parse(&data)
+    }
+
     /// Reads the `.wvd` container pywidevine and the Rust ports use: the magic
     /// `WVD`, a version (1 or 2), the device type, security level and flags,
     /// then the RSA key and the client ID, each length-prefixed (u16, BE).
     pub fn parse(data: &[u8]) -> Result<Self, String> {
         const BAD: &str = "This file is not a Widevine device (.wvd)";
+        if data.len() as u64 > MAX_DEVICE_BYTES {
+            return Err("The Widevine device file is too large".to_string());
+        }
         if data.len() < 7 || &data[..3] != b"WVD" {
             return Err(BAD.to_string());
         }
@@ -64,8 +85,8 @@ impl Device {
         if client_id.is_empty() {
             return Err(BAD.to_string());
         }
-        let key = RsaPrivateKey::from_pkcs8_der(key_der)
-            .or_else(|_| RsaPrivateKey::from_pkcs1_der(key_der))
+        let key = PrivateKey::from_pkcs8_der(key_der)
+            .or_else(|_| PrivateKey::from_pkcs1_der(key_der))
             .map_err(|_| "The Widevine device file has an invalid private key".to_string())?;
         Ok(Self {
             client_id: client_id.to_vec(),
@@ -154,7 +175,7 @@ pub struct Challenge {
 impl Challenge {
     pub fn new(device: Device, pssh: &Pssh) -> Result<Self, String> {
         let mut request_id = vec![0u8; 16];
-        rand::rngs::OsRng.fill_bytes(&mut request_id);
+        getrandom::fill(&mut request_id).map_err(|e| format!("Could not generate a Widevine request id: {}", e))?;
 
         // LicenseRequest.ContentIdentification.WidevinePsshData
         let mut pssh_data = Vec::new();
@@ -171,7 +192,9 @@ impl Challenge {
         pb::uint(&mut request, 4, unix_time());
         pb::uint(&mut request, 6, PROTOCOL_VERSION_2_1);
         // A POSITIVE int32; zero would look like an unset field.
-        let nonce = u64::from(rand::random::<u32>() >> 1).max(1);
+        let mut nonce_bytes = [0u8; 4];
+        getrandom::fill(&mut nonce_bytes).map_err(|e| format!("Could not generate a Widevine nonce: {}", e))?;
+        let nonce = u64::from(u32::from_be_bytes(nonce_bytes) >> 1).max(1);
         pb::uint(&mut request, 7, nonce);
 
         let signature = sign(&device.key, &request)?;
@@ -222,7 +245,7 @@ impl Challenge {
         let session_key = self
             .device
             .key
-            .decrypt(Oaep::new::<Sha1>(), wrapped)
+            .oaep_decrypt::<Sha1>(wrapped)
             .map_err(|_| "Could not unwrap the Widevine session key".to_string())?;
         let enc_key = derive(&session_key, &self.enc_context, 1)?;
         let mut mac_key = derive(&session_key, &self.mac_context, 1)?;
@@ -235,23 +258,37 @@ impl Challenge {
         mac.verify_slice(signature)
             .map_err(|_| "The Widevine licence signature does not match".to_string())?;
 
-        let mut fallback: Option<[u8; 16]> = None;
-        for container in license.iter().filter(|field| field.number == 3) {
-            let Some(bytes) = container.bytes else {
-                continue;
-            };
-            let fields = pb::fields(bytes);
-            if field_uint(&fields, 4) != Some(KEY_TYPE_CONTENT) {
-                continue;
-            }
-            let key = unlock_key(&enc_key, &fields)?;
-            if self.key_ids.contains(&key.0) {
-                return Ok(key.1);
-            }
-            fallback.get_or_insert(key.1);
-        }
-        fallback.ok_or_else(|| "The Widevine licence contains no content key".to_string())
+        let keys = license.iter().filter(|field| field.number == 3).filter_map(|container| {
+            let fields = pb::fields(container.bytes?);
+            (field_uint(&fields, 4) == Some(KEY_TYPE_CONTENT)).then(|| unlock_key(&enc_key, &fields))
+        });
+        select_content_key(&self.key_ids, keys)
     }
+}
+
+/// Selects by KID. Without KIDs a licence is usable only when it is
+/// unambiguous; silently taking the first of several keys corrupts the audio.
+fn select_content_key<I>(requested: &[[u8; 16]], keys: I) -> Result<[u8; 16], String>
+where
+    I: IntoIterator<Item = Result<([u8; 16], [u8; 16]), String>>,
+{
+    let mut only_key = None;
+    for key in keys {
+        let (id, key) = key?;
+        if requested.contains(&id) {
+            return Ok(key);
+        }
+        if requested.is_empty() {
+            if only_key.is_some() {
+                return Err("The Widevine licence contains several content keys but no key IDs".to_string());
+            }
+            only_key = Some(key);
+        }
+    }
+    if !requested.is_empty() {
+        return Err("The Widevine licence does not contain the requested content key".to_string());
+    }
+    only_key.ok_or_else(|| "The Widevine licence contains no content key".to_string())
 }
 
 /// `(key id, key)` of one `License.KeyContainer`, decrypted with the licence's
@@ -278,10 +315,10 @@ fn unlock_key(enc_key: &[u8], fields: &[pb::Field<'_>]) -> Result<([u8; 16], [u8
     Ok((kid, key))
 }
 
-fn sign(key: &RsaPrivateKey, message: &[u8]) -> Result<Vec<u8>, String> {
+fn sign(key: &PrivateKey, message: &[u8]) -> Result<Vec<u8>, String> {
     let signing = SigningKey::<Sha1>::new(key.clone());
     signing
-        .try_sign_with_rng(&mut rand::rngs::OsRng, message)
+        .try_sign_with_rng(&mut getrandom::SysRng, message)
         .map(|signature| signature.to_bytes().to_vec())
         .map_err(|e| format!("Could not sign the Widevine licence request: {}", e))
 }
@@ -350,11 +387,22 @@ impl Cenc {
             .map_err(|e| format!("Could not read the encrypted SoundCloud stream: {}", e))
     }
 
-    /// Decrypts one fMP4 fragment (`moof` + `mdat`) in place.
+    /// Decrypts one fMP4 fragment (`moof` + `mdat`) in place. `vsd-mp4`
+    /// returns input unchanged when encryption metadata or sample boxes are
+    /// missing, so an unchanged fragment is a failure, not decrypted audio.
     pub fn fragment(&self, fragment: Vec<u8>) -> Result<Vec<u8>, String> {
-        self.inner
+        if fragment.is_empty() {
+            return Err("SoundCloud sent an empty encrypted media segment".to_string());
+        }
+        let before = Sha256::digest(&fragment);
+        let decrypted = self
+            .inner
             .decrypt_fragment(fragment, None)
-            .map_err(|e| format!("Could not decrypt the SoundCloud stream: {}", e))
+            .map_err(|e| format!("Could not decrypt the SoundCloud stream: {}", e))?;
+        if Sha256::digest(&decrypted) == before {
+            return Err("SoundCloud sent an encrypted segment with no decryptable media samples".to_string());
+        }
+        Ok(decrypted)
     }
 }
 
@@ -460,7 +508,7 @@ mod pb {
 mod tests {
     use super::*;
 
-    fn wvd(key: &RsaPrivateKey, client_id: &[u8]) -> Vec<u8> {
+    fn wvd(key: &PrivateKey, client_id: &[u8]) -> Vec<u8> {
         use rsa::pkcs8::EncodePrivateKey;
         let der = key.to_pkcs8_der().unwrap();
         let mut out = b"WVD".to_vec();
@@ -475,7 +523,7 @@ mod tests {
     #[test]
     fn reads_a_device_provision() {
         use rsa::traits::PublicKeyParts;
-        let key = RsaPrivateKey::new(&mut rand::rngs::OsRng, 1024).unwrap();
+        let key = PrivateKey::new(&mut getrandom::SysRng, 1024).unwrap();
         let client_id = b"\x08\x01fake-client-identification".to_vec();
         let device = Device::parse(&wvd(&key, &client_id)).unwrap();
         assert_eq!(device.client_id, client_id);
@@ -483,6 +531,48 @@ mod tests {
 
         assert!(Device::parse(b"not a wvd").is_err());
         assert!(Device::parse(b"WVD\x09\x02\x03\x00").is_err());
+    }
+
+    #[tokio::test]
+    async fn device_loads_are_bounded_by_the_wvd_format() {
+        let key = PrivateKey::new(&mut getrandom::SysRng, 1024).unwrap();
+        let mut bytes = wvd(&key, b"\x08\x01client");
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("wavekeep-wvd-cap-{}-{}.wvd", std::process::id(), nonce));
+        tokio::fs::write(&path, &bytes).await.unwrap();
+        assert!(Device::load(&path).await.is_ok());
+
+        bytes.resize(MAX_DEVICE_BYTES as usize + 1, 0);
+        tokio::fs::write(&path, &bytes).await.unwrap();
+        assert!(Device::load(&path).await.err().unwrap().contains("too large"));
+        let _ = tokio::fs::remove_file(path).await;
+    }
+
+    #[test]
+    fn selects_only_a_requested_or_unambiguous_content_key() {
+        let first_id = [0x11u8; 16];
+        let second_id = [0x22u8; 16];
+        let first_key = [0x33u8; 16];
+        let second_key = [0x44u8; 16];
+        assert_eq!(
+            select_content_key(&[first_id], vec![Ok((second_id, second_key)), Ok((first_id, first_key))]).unwrap(),
+            first_key
+        );
+        assert!(select_content_key(&[first_id], vec![Ok((second_id, second_key))]).is_err());
+        assert_eq!(select_content_key(&[], vec![Ok((first_id, first_key))]).unwrap(), first_key);
+        assert!(select_content_key(&[], vec![Ok((first_id, first_key)), Ok((second_id, second_key))]).is_err());
+    }
+
+    #[test]
+    fn rejects_empty_and_unchanged_encrypted_fragments() {
+        // An empty init is enough to reach the no-op branch in vsd-mp4: it has
+        // no scheme, so the library returns every fragment unchanged.
+        let cenc = Cenc::new(&[], &[0u8; 16]).unwrap();
+        assert!(cenc.fragment(Vec::new()).is_err());
+        assert!(cenc.fragment(vec![0u8; 64]).is_err());
     }
 
     #[test]
@@ -530,7 +620,7 @@ mod tests {
     #[test]
     fn builds_a_signed_licence_challenge_in_protocol_order() {
         use rsa::signature::Verifier;
-        let key = RsaPrivateKey::new(&mut rand::rngs::OsRng, 1024).unwrap();
+        let key = PrivateKey::new(&mut getrandom::SysRng, 1024).unwrap();
         let device = Device::parse(&wvd(&key, b"\x08\x01client")).unwrap();
         let mut header = Vec::new();
         pb::bytes(&mut header, 2, &[0x33u8; 16]);

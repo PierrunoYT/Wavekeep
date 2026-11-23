@@ -1,3 +1,4 @@
+use std::future::Future;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -184,9 +185,32 @@ pub async fn download_track(
                 return Err(e);
             }
         };
-        let key = widevine_key(&http, cdm, pssh.as_deref().unwrap_or_default(), &license_token).await?;
-        let cenc = widevine::Cenc::new(&init, &key)?;
-        file.write_all(&init).await.map_err(|e| e.to_string())?;
+        let key = match widevine_key(&http, cdm, pssh.as_deref().unwrap_or_default(), &license_token, &cancel_flag).await {
+            Ok(Some(key)) => key,
+            Ok(None) => {
+                drop(file);
+                cleanup_temp_file_async(&temp_path).await;
+                return Ok(result(String::new(), &choice.label, "canceled"));
+            }
+            Err(e) => {
+                drop(file);
+                cleanup_temp_file_async(&temp_path).await;
+                return Err(e);
+            }
+        };
+        let cenc = match widevine::Cenc::new(&init, &key) {
+            Ok(cenc) => cenc,
+            Err(e) => {
+                drop(file);
+                cleanup_temp_file_async(&temp_path).await;
+                return Err(e);
+            }
+        };
+        if let Err(e) = file.write_all(&init).await {
+            drop(file);
+            cleanup_temp_file_async(&temp_path).await;
+            return Err(e.to_string());
+        }
         head.extend_from_slice(&init[..init.len().min(8)]);
         written += init.len() as u64;
 
@@ -210,7 +234,14 @@ pub async fn download_track(
                     return Err(e);
                 }
             };
-            let decrypted = cenc.fragment(segment)?;
+            let decrypted = match cenc.fragment(segment) {
+                Ok(decrypted) => decrypted,
+                Err(e) => {
+                    drop(file);
+                    cleanup_temp_file_async(&temp_path).await;
+                    return Err(e);
+                }
+            };
             written += decrypted.len() as u64;
             if written > MAX_AUDIO_BYTES {
                 drop(file);
@@ -529,6 +560,9 @@ fn parse_hls(base: &Url, playlist: &str) -> Result<Hls, String> {
         // A key Wavekeep cannot use: FairPlay, or a Widevine key without data.
         return Err(DRM_MESSAGE.to_string());
     }
+    if encrypted && parts.len() < 2 {
+        return Err("SoundCloud sent an encrypted playlist without media segments".to_string());
+    }
     Ok(Hls { parts, pssh })
 }
 
@@ -542,23 +576,27 @@ fn data_uri_pssh(attributes: &str) -> Option<String> {
 
 /// The Widevine content key for one DRM stream: read the device, build the
 /// challenge, send it to SoundCloud's licence server, unwrap the answer.
+/// `Ok(None)` means the download was cancelled.
 async fn widevine_key(
     http: &reqwest::Client,
     cdm: &Path,
     pssh: &str,
     license_token: &str,
-) -> Result<[u8; 16], String> {
+    cancel_flag: &AtomicBool,
+) -> Result<Option<[u8; 16]>, String> {
+    if cancel_flag.load(Ordering::Relaxed) {
+        return Ok(None);
+    }
     let bytes = pssh_bytes(pssh)?;
     let pssh = widevine::parse_pssh(&bytes)?;
-    let provision = tokio::fs::read(cdm)
-        .await
-        .map_err(|e| format!("Could not read the Widevine device file: {}", e))?;
-    let device = widevine::Device::parse(&provision)?;
+    let device = widevine::Device::load(cdm).await?;
     let challenge = widevine::Challenge::new(device, &pssh)?;
-    let license = request_license(http, license_token, challenge.message()).await?;
+    let Some(license) = request_license(http, license_token, challenge.message(), cancel_flag).await? else {
+        return Ok(None);
+    };
     let key = challenge.content_key(&license)?;
     crate::logging::info("soundcloud", "Widevine licence accepted");
-    Ok(key)
+    Ok(Some(key))
 }
 
 fn pssh_bytes(pssh: &str) -> Result<Vec<u8>, String> {
@@ -567,30 +605,59 @@ fn pssh_bytes(pssh: &str) -> Result<Vec<u8>, String> {
         .map_err(|_| "SoundCloud sent invalid Widevine data".to_string())
 }
 
+/// Runs a future to completion unless cancellation is requested first. The
+/// request future is dropped on cancellation, which closes its HTTP body.
+async fn until_cancelled<F: Future>(future: F, cancel_flag: &AtomicBool) -> Option<F::Output> {
+    if cancel_flag.load(Ordering::Relaxed) {
+        return None;
+    }
+    let cancelled = async {
+        while !cancel_flag.load(Ordering::Relaxed) {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    };
+    tokio::select! {
+        biased;
+        _ = cancelled => None,
+        output = future => Some(output),
+    }
+}
+
 /// POSTs the signed challenge to SoundCloud's licence server. Errors never
 /// carry the URL: it holds the licence token.
-async fn request_license(http: &reqwest::Client, token: &str, challenge: &[u8]) -> Result<Vec<u8>, String> {
+async fn request_license(
+    http: &reqwest::Client,
+    token: &str,
+    challenge: &[u8],
+    cancel_flag: &AtomicBool,
+) -> Result<Option<Vec<u8>>, String> {
     if token.is_empty() {
         return Err("SoundCloud did not return a licence token for this track".to_string());
     }
-    let mut url = Url::parse(LICENSE_URL).map_err(|_| "Invalid Widevine licence URL".to_string())?;
-    url.query_pairs_mut().append_pair("license_token", token);
-    let response = http
-        .post(url)
-        .header(reqwest::header::ACCEPT, "*/*")
-        .header(reqwest::header::CONTENT_TYPE, "application/octet-stream")
-        .header(reqwest::header::ORIGIN, "https://soundcloud.com")
-        .header(reqwest::header::REFERER, "https://soundcloud.com/")
-        .body(challenge.to_vec())
-        .timeout(Duration::from_secs(60))
-        .send()
-        .await
-        .map_err(|e| format!("SoundCloud licence request failed: {}", e.without_url()))?;
-    let status = response.status();
-    if !status.is_success() {
-        return Err(format!("SoundCloud licence request failed ({})", status));
+    let request = async {
+        let mut url = Url::parse(LICENSE_URL).map_err(|_| "Invalid Widevine licence URL".to_string())?;
+        url.query_pairs_mut().append_pair("license_token", token);
+        let response = http
+            .post(url)
+            .header(reqwest::header::ACCEPT, "*/*")
+            .header(reqwest::header::CONTENT_TYPE, "application/octet-stream")
+            .header(reqwest::header::ORIGIN, "https://soundcloud.com")
+            .header(reqwest::header::REFERER, "https://soundcloud.com/")
+            .body(challenge.to_vec())
+            .timeout(Duration::from_secs(60))
+            .send()
+            .await
+            .map_err(|e| format!("SoundCloud licence request failed: {}", e.without_url()))?;
+        let status = response.status();
+        if !status.is_success() {
+            return Err(format!("SoundCloud licence request failed ({})", status));
+        }
+        crate::audio::read_capped(response, MAX_LICENSE_BYTES, "SoundCloud licence").await
+    };
+    match until_cancelled(request, cancel_flag).await {
+        Some(result) => result.map(Some),
+        None => Ok(None),
     }
-    crate::audio::read_capped(response, MAX_LICENSE_BYTES, "SoundCloud licence").await
 }
 
 /// Fetches one segment into memory (it must be decrypted before it is
@@ -878,6 +945,27 @@ mod tests {
         assert!(parse_hls(&base, "#EXTM3U\n#EXTINF:10,\nhttp://cf-hls-media.sndcdn.com/seg0.mp3\n").is_err());
         assert!(parse_hls(&base, "<html>").is_err());
         assert!(parse_hls(&base, "#EXTM3U\n#EXT-X-ENDLIST\n").is_err());
+    }
+
+    #[test]
+    fn refuses_an_encrypted_playlist_without_media_segments() {
+        let base = Url::parse("https://cf-hls-media.sndcdn.com/playlist.m3u8").unwrap();
+        let playlist = "#EXTM3U\n\
+            #EXT-X-KEY:METHOD=SAMPLE-AES-CTR,URI=\"data:text/plain;base64,AAAAW3Bzc2g\"\n\
+            #EXT-X-MAP:URI=\"init.mp4\"\n#EXT-X-ENDLIST\n";
+        assert!(parse_hls(&base, playlist).unwrap_err().contains("without media segments"));
+    }
+
+    #[tokio::test]
+    async fn cancellation_interrupts_pending_license_work() {
+        let flag = Arc::new(AtomicBool::new(false));
+        let task_flag = flag.clone();
+        let task = tokio::spawn(async move { until_cancelled(std::future::pending::<()>(), &task_flag).await });
+        tokio::task::yield_now().await;
+        flag.store(true, Ordering::Relaxed);
+        let result = tokio::time::timeout(Duration::from_secs(2), task).await.unwrap().unwrap();
+        assert!(result.is_none());
+        assert_eq!(until_cancelled(async { 7 }, &AtomicBool::new(false)).await, Some(7));
     }
 
     #[test]

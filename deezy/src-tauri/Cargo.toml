@@ -46,9 +46,9 @@ librespot-oauth = "0.8"
 lofty = "0.25"
 # Widevine CDM for SoundCloud's DRM-protected streams (RSA-PSS signing,
 # RSA-OAEP session keys, AES-CMAC key derivation) and CENC sample decryption.
-rsa = { version = "0.9", features = ["sha1"] }
-rand = "0.8"
-sha1 = "0.10"
+rsa = { version = "0.10", features = ["sha1"] }
+getrandom = { version = "0.4", features = ["sys_rng"] }
+sha1 = "0.11"
 sha2 = "0.10"
 hmac = "0.12"
 cmac = "0.7"

@@ -375,6 +375,7 @@ mod tests {
         for path in &refused {
             assert_eq!(check_audio_file(&grants, &output, path).await, Err(AUDIO_NOT_APPROVED.to_string()), "{}", path);
             assert_eq!(check_image_file(&grants, &output, path).await, Err(IMAGE_NOT_APPROVED.to_string()), "{}", path);
+            assert_eq!(check_cdm_file(&grants, &output, path).await, Err(CDM_NOT_APPROVED.to_string()), "{}", path);
             assert_eq!(check_granted_folder(&grants, &output, path).await, Err(FOLDER_NOT_APPROVED.to_string()), "{}", path);
         }
 
@@ -383,8 +384,10 @@ mod tests {
         let canonical = std::fs::canonicalize(&outside).unwrap();
         grants.lock().await.audio.insert(canonical.clone());
         grants.lock().await.images.insert(canonical.clone());
+        grants.lock().await.cdm.insert(canonical.clone());
         assert_eq!(check_audio_file(&grants, &output, &outside.to_string_lossy()).await, Ok(canonical.clone()));
-        assert_eq!(check_image_file(&grants, &output, &outside.to_string_lossy()).await, Ok(canonical));
+        assert_eq!(check_image_file(&grants, &output, &outside.to_string_lossy()).await, Ok(canonical.clone()));
+        assert_eq!(check_cdm_file(&grants, &output, &outside.to_string_lossy()).await, Ok(canonical));
         grants.lock().await.folders.insert(std::fs::canonicalize(&output_dir).unwrap());
         assert!(check_granted_folder(&grants, &output, &output).await.is_ok());
 
