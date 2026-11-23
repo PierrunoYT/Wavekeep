@@ -126,7 +126,7 @@ impl Default for Settings {
             quality: "MP3_320".into(),
             folder_structure: FolderStructure::default(),
             custom_folder_template: default_custom_folder_template(),
-            theme: Some("system".to_string()),
+            theme: Some("dark".to_string()),
             custom_theme: None,
             search_history: Vec::new(),
             enable_search_history: true,

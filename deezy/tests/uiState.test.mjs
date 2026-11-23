@@ -71,7 +71,7 @@ function themeSetup() {
   const { applyTheme } = loadModule('../src/routes/+layout.svelte', {
     '../app.css': {}, svelte: { onMount() {}, onDestroy() {} },
     '@tauri-apps/api/core': { invoke: async command => command === 'get_settings' ? { custom_theme: 'custom' } : pending.promise },
-    '@tauri-apps/api/event': {}, '$lib/stores': {}, '$lib/i18n': {}, 'svelte-i18n': {},
+    '@tauri-apps/api/event': {}, '$lib/stores': { DEFAULT_THEME: 'dark' }, '$lib/i18n': {}, 'svelte-i18n': {},
     '$lib/tray': {}, '$lib/downloadQueue': {}, '$lib/downloadHistory': {}, '$lib/notifications': {},
     '$lib/logger': {}, '$lib/themeColors': loadModule('../src/lib/themeColors.ts', {})
   }, {

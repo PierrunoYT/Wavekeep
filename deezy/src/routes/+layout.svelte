@@ -20,6 +20,7 @@
     downloadDelaySeconds,
     maxConcurrentDownloads,
     DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+    DEFAULT_THEME,
     type Theme,
     type AppSettings
   } from '$lib/stores';
@@ -157,7 +158,7 @@
       await initI18n(savedLocale);
       currentLocale.set(savedLocale);
       
-      const themeValue = settings.theme || 'system';
+      const themeValue = settings.theme || DEFAULT_THEME;
       theme.set(themeValue);
       await applyTheme(themeValue);
       
@@ -185,8 +186,8 @@
       notificationManager.setEnabled(false);
       await initI18n('en');
       currentLocale.set('en');
-      theme.set('system');
-      await applyTheme('system');
+      theme.set(DEFAULT_THEME);
+      await applyTheme(DEFAULT_THEME);
     } finally {
       await ensureMinimumSplashTime(splashStartedAt);
       appInitialized = true;

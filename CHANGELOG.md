@@ -10,6 +10,7 @@ All notable changes to Wavekeep (formerly Deezy) are documented here.
 
 ### Changed
 
+- **Dark theme by default** — New installs now start in dark mode instead of following the OS color scheme. Light and System themes remain available in Settings.
 - **Clearer risk warning** — The startup warning and the Info & FAQ now say plainly that Wavekeep is unofficial and used at your own risk, that Deezer and Spotify can warn, restrict, suspend or ban accounts that use download tools, and that the developer takes no responsibility for it. The warning appears once more for everyone, even if you ticked "Don't show this again" before. The `FAQ.md` file was rewritten to match, with a "Read this first" section at the top.
 
 ---
