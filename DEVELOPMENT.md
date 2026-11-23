@@ -16,7 +16,14 @@ bun install --frozen-lockfile
 bun run tauri dev
 ```
 
-Run the remaining application commands from `deezy/`.
+Run the remaining application commands from `deezy/`. The YouTube source runs
+`yt-dlp` (which needs Deno for YouTube) and `ffmpeg` from the PATH; install them
+to test it. Nothing else needs them.
+
+In Amp orbs, `.agents/setup` installs the Linux packages and toolchains, the
+locked frontend dependencies, and pre-builds the Rust dependencies and test
+target (`cargo test --no-run`); `.agents/resume` only checks that `bun`, `cargo`
+and `deezy/node_modules` are present.
 
 The committed `bun.lock` defines frontend dependencies. Reinstall with
 `--frozen-lockfile` after pulling dependency updates; stale `node_modules` can
@@ -49,13 +56,14 @@ Paths below are relative to `deezy/`.
 | `src/lib/tray.ts` | Tray event listener and status subscriptions |
 | `src/lib/components/search/` | Search and library (Loved Tracks, My Playlists) result rendering, types, and styles |
 | `src-tauri/src/lib.rs` | Managed application state, command registration, window events |
-| `src-tauri/src/commands/` | IPC handlers grouped by account, catalog, diagnostics (log), downloads, filesystem, history, settings, SoundCloud (search, links, Widevine device picker), Spotify, tag editor, themes, and tray |
-| `src-tauri/src/deezer/` | Authentication, gateway and catalog requests, user library (Loved Tracks, profile playlists), media resolution, crypto, downloads, models, and the bandwidth limiter shared with Spotify and SoundCloud |
-| `src-tauri/src/spotify/` | OAuth/AP sessions, Web API and Pathfinder search, AP catalog metadata, librespot audio streaming, and OGG/FLAC/MP3/M4A tagging (also used by SoundCloud) |
+| `src-tauri/src/commands/` | IPC handlers grouped by account, catalog, diagnostics (log), downloads, filesystem, history, settings, SoundCloud (search, links, Widevine device picker), Spotify, tag editor, themes, tray, and YouTube (`search_youtube_tracks`/`_artists`/`_playlists`, `get_youtube_track`, `get_youtube_album_tracks` for `uploads:<channel>` or `playlist:<id>`, `get_youtube_playlist_tracks`, `get_youtube_artist_albums`, `resolve_youtube_url`) |
+| `src-tauri/src/deezer/` | Authentication, gateway and catalog requests, user library (Loved Tracks, profile playlists), media resolution, crypto, downloads, models, and the bandwidth limiter shared with Spotify, SoundCloud and YouTube |
+| `src-tauri/src/spotify/` | OAuth/AP sessions, the Premium account check, Web API and Pathfinder search, AP catalog metadata, and librespot audio streaming |
 | `src-tauri/src/soundcloud/` | Anonymous `api-v2` client (client_id lookup, search, catalog, link resolving) and HLS/progressive/DRM downloads |
+| `src-tauri/src/youtube/` | yt-dlp backed source: link parsing and ID validation (`mod.rs`), search and catalog from yt-dlp JSON (`api.rs`), bounded cancellable child processes (`process.rs`: no console window, at most 8 at once, 120 s timeout, killed on cancel, URLs and search terms stripped from errors), and downloads (`download.rs`: 10 MiB range fetch from `*.googlevideo.com`, max 1 GiB → ffmpeg `-c:a copy` remux → tags → `.wavekeep.part` finalize). Track keys are `youtube:<11-char video id>` |
 | `src-tauri/src/widevine.rs` | Widevine (L3) licence exchange and CENC decryption behind SoundCloud's DRM streams; needs a user-picked `.wvd` device |
-| `src-tauri/src/audio.rs`, `tags.rs` | Helpers shared by the Spotify and SoundCloud engines: capped body reads, cover fetch, progress events, audio magic-byte check, lofty tagging |
-| `src-tauri/src/paths.rs` | Provider-neutral destination paths and safe temp-file finalization shared by all three engines |
+| `src-tauri/src/audio.rs`, `tags.rs` | Helpers shared by the Spotify, SoundCloud and YouTube engines: capped body reads, cover fetch, progress events, `until_cancelled`, audio magic-byte check, lofty tagging |
+| `src-tauri/src/paths.rs` | Provider-neutral destination paths and safe temp-file finalization shared by all four engines |
 | `src-tauri/src/settings.rs` | Validated settings, credential storage, atomic private-file writes |
 | `src-tauri/src/themes.rs` | Custom theme validation and persistence |
 | `src-tauri/src/migration.rs` | One-time move of Deezy data and credentials to the Wavekeep identifier |
@@ -84,10 +92,17 @@ link support fall back to a rename that never overwrites: atomic on Windows
 (`MoveFileExW` without replace), and an exists-check followed by a rename on
 macOS and Linux, which is not atomic.
 
+YouTube downloads follow the same flow with an extra step: yt-dlp only resolves
+metadata and a direct HTTPS audio URL (WebM Opus, then M4A AAC, then MP3).
+Wavekeep fetches the bytes itself from `*.googlevideo.com` in 10 MiB range
+slices (YouTube throttles whole-file requests) through the shared speed limit,
+capped at 1 GiB, then ffmpeg remuxes with `-c:a copy` (Opus → `.ogg`, AAC →
+`.m4a`) before lofty tags and the `.wavekeep.part` publication.
+
 With skip existing files enabled (the default), the backend first builds the
 destination path and checks for a non-empty supported audio file. Deezer checks
 `.mp3` and `.flac`; Spotify checks `.ogg`, `.flac`, `.mp3`, and `.m4a`;
-SoundCloud checks `.m4a` and `.mp3`. A match
+SoundCloud checks `.m4a` and `.mp3`; YouTube checks `.ogg`, `.m4a`, and `.mp3`. A match
 returns `status: "skipped"` without opening an audio stream. Only the current
 folder structure is checked; the download folder is not scanned.
 
@@ -125,7 +140,7 @@ Spotify separates catalog and download responsibilities:
   releases, silently; the Web API fallback pages up to 1,000. Unavailable individual tracks are skipped, but a completely failed
   track load returns an error.
 - `download.rs` selects the best available audio format and streams through the
-  AP session. `tags.rs` (shared with SoundCloud) writes the provider-appropriate OGG, FLAC, MP3, or M4A tags.
+  AP session. The top-level `tags.rs` (shared with SoundCloud and YouTube) writes the OGG, FLAC, MP3, or M4A tags.
 
 OAuth uses `http://127.0.0.1:5588/login`. The AP session (track metadata and
 audio) always logs in with librespot's shared default Client ID, because Spotify
@@ -213,10 +228,14 @@ that review. Test these separately when changes affect those paths.
    section. Keep source-only changes distinct from shipped installer behavior.
 4. Install locked dependencies and run `npm test`, `npm run check`, `npm run build`,
    and `cargo test --manifest-path src-tauri/Cargo.toml`.
-5. Smoke-test Deezer and Spotify login/session restoration, SoundCloud search and links (no login; one DRM track when a
-   Widevine device is set), search and rate-limit
+5. Smoke-test Deezer and Spotify login/session restoration (a Spotify Free
+   account, when one is available, must be refused with "Spotify Premium is
+   required" without closing the app), SoundCloud search and links (no login; one
+   DRM track when a Widevine device is set), YouTube search, one link and one
+   download (needs yt-dlp, Deno and ffmpeg on PATH), search and rate-limit
    fallback, catalog loading, previews where available, download/pause/resume,
-   tagging, restart recovery, themes, and tray shutdown on the release platform.
+   tagging, restart recovery, themes (a fresh profile starts dark), and tray
+   shutdown on the release platform.
 6. Build with `bun run tauri build` and verify the generated artifacts under
    `src-tauri/target/release/bundle/`.
 7. Until Deezy installs are gone, the release notes must tell `.exe` users to
@@ -226,5 +245,5 @@ that review. Test these separately when changes affect those paths.
    annotated tag `vX.Y.Z` with the message `Wavekeep vX.Y.Z`, then publish the
    appropriate installers and notes through the repository's release process.
    Push the commit and tag only when the maintainer asks, and never before the
-   smoke test in step 4 has passed. The
+   smoke test in step 5 has passed. The
    app has no automatic updater.

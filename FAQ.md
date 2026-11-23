@@ -1,12 +1,12 @@
 # Wavekeep FAQ
 
-This FAQ describes Wavekeep 0.3.0 and what is coming in the next version: the SoundCloud source (including its optional Widevine DRM) and the Spotify Premium check are not in 0.3.0 yet. Use the headings to jump to what you need.
+This FAQ describes Wavekeep 0.3.0 and what is coming in the next version: the SoundCloud source (including its optional Widevine DRM), the YouTube source, the Spotify Premium check and the dark default theme are not in 0.3.0 yet. Use the headings to jump to what you need.
 
 ---
 
 ## Read this first
 
-**Wavekeep is an unofficial tool.** It is not made, approved or supported by Deezer, Spotify or SoundCloud.
+**Wavekeep is an unofficial tool.** It is not made, approved or supported by Deezer, Spotify, SoundCloud or YouTube.
 
 - **It can get your account banned.** Downloading with software like this breaks Deezer's and Spotify's terms of service. They can warn, restrict, suspend or ban an account, and they can do it without notice. Spacing out downloads (see [Can I slow down downloads?](#can-i-slow-down-or-space-out-downloads)) makes the activity look more like normal listening, but it does not remove the risk.
 - **You use it at your own risk.** Wavekeep comes with no warranty. The developer takes no responsibility for banned or restricted accounts, lost playlists, subscriptions or purchases, or anything else that happens because you used it. Do not use an account you cannot afford to lose.
@@ -20,7 +20,7 @@ If you do not accept this, do not use Wavekeep.
 
 ### What is Wavekeep?
 
-A desktop app (Windows installers are published; macOS and Linux can be built from source) that searches Deezer, Spotify and SoundCloud and downloads tracks, albums and playlists with tags and cover art. It was called Deezy before version 0.3.0.
+A desktop app (Windows installers are published; macOS and Linux can be built from source) that searches Deezer, Spotify, SoundCloud and YouTube and downloads tracks, albums and playlists with tags and cover art. It was called Deezy before version 0.3.0.
 
 ### How do I get my Deezer ARL token?
 
@@ -40,17 +40,22 @@ Yes. Connect Spotify in Settings (a browser login on Spotify's own page), then c
 
 No. Choose SoundCloud as the music source in Search, or paste a `soundcloud.com` link. Wavekeep uses the same anonymous access as the soundcloud.com web player. Many major-label releases are only offered as Widevine-encrypted streams: choose a Widevine device file (`.wvd`) under **Settings → SoundCloud DRM** to download them, otherwise Wavekeep says they cannot be downloaded. Tracks that only have a 30-second preview (Go+ or region-restricted) are refused with a message too.
 
+### Do I need an account for YouTube?
+
+No, but you need three free tools installed and on your PATH: yt-dlp, Deno (yt-dlp needs a JavaScript runtime for YouTube) and ffmpeg. Restart Wavekeep after installing them. Without yt-dlp Wavekeep says "YouTube needs yt-dlp on PATH. Install yt-dlp and ffmpeg, then restart Wavekeep" (the same with ffmpeg when only that is missing). There is no setting. If YouTube searches or downloads stop working, update yt-dlp first; YouTube changes often.
+
 ### Does Spotify work with a Free account?
 
-No, the Spotify source needs **Spotify Premium**. The library Wavekeep uses to talk to Spotify (librespot) closes the whole program as soon as it connects to a Free account, and nothing appears in the log. In 0.3.0 Wavekeep therefore just closes right after the Spotify login. The next version checks your account type first and shows "Spotify Premium is required" instead. Deleting saved credentials or app data does not help; only a Premium account does. Deezer still works with a Free account.
+No, the Spotify source needs **Spotify Premium**. The library Wavekeep uses to talk to Spotify (librespot) closes the whole program as soon as it connects to a Free account, and nothing appears in the log. In 0.3.0 Wavekeep therefore just closes right after the Spotify login. The next version checks your account type first, at login and each time it restores your saved login at startup, and shows "Spotify Premium is required" instead; a saved Free login is then removed. Deleting saved credentials or app data does not help; only a Premium account does. Deezer still works with a Free account.
 
 ### Can I paste a link to download?
 
-Yes. The **music URL** field in Search accepts `deezer.com`, `open.spotify.com` and `soundcloud.com` links:
+Yes. The **music URL** field in Search accepts `deezer.com`, `open.spotify.com`, `soundcloud.com`, `youtube.com` and `youtu.be` links:
 
 - Track links add one track.
 - Album and playlist links add all their tracks.
 - Artist links add the tracks of every album returned for that artist, after asking you to confirm the number of albums. SoundCloud profile links add the user's uploads (up to 500) after asking you to confirm the number of tracks.
+- YouTube: video links (`watch?v=`, `youtu.be/<id>`, `/shorts/`, `/embed/`, `/live/`) add one track; playlist links (`/playlist?list=`, or `/watch?list=` without `v=`) add the playlist; channel links (`@handle`, `/channel/UC…`, `/c/<name>`, `/user/<name>`) add the channel's uploads (up to 1000) after asking you to confirm. `www.`, `m.` and `music.youtube.com` work too. A link with both `v=` and `list=` adds only the video.
 
 Deezer links must be full `http(s)://` links with a numeric ID, such as `https://www.deezer.com/track/123456`, optionally with a locale like `/en/`. Short links and other domains are not supported.
 
@@ -69,13 +74,15 @@ Deezer links must be full `http(s)://` links with a numeric ID, such as `https:/
 
 Free accounts are always limited to MP3 128 kbps, whatever you choose in Settings.
 
-**Spotify** (Premium only, see [Does Spotify work with a Free account?](#does-spotify-work-with-a-free-account)): Settings offers Normal (96 kbps), High (160 kbps), Very high (320 kbps) and Lossless (FLAC). Each setting starts at its own bitrate and falls back to the others when Spotify does not supply it. At each bitrate OGG Vorbis is preferred over MP3. FLAC is only requested for Lossless; if a track offers none of the usual formats, Wavekeep takes whatever Spotify lists, such as AAC. Availability varies by track and region.
+**Spotify** (Premium only, see [Does Spotify work with a Free account?](#does-spotify-work-with-a-free-account)): Settings offers Normal (96 kbps), High (160 kbps), Very high (320 kbps, the default) and Lossless (FLAC). Each setting starts at its own bitrate and falls back to the others when Spotify does not supply it. At each bitrate OGG Vorbis is preferred over MP3. FLAC is only requested for Lossless; if a track offers none of the usual formats, Wavekeep takes whatever Spotify lists, such as AAC. Availability varies by track and region.
 
 **SoundCloud**: there is no quality setting. Wavekeep downloads the best stream SoundCloud serves, today usually AAC 160 kbps (saved as `.m4a`), sometimes MP3 128 kbps. With a Widevine device (Settings → SoundCloud DRM), the Widevine-encrypted streams that many major-label releases only offer are used as well, usually AAC 256 kbps. FairPlay streams (SoundCloud Go+ on Apple devices) and 30-second previews are never used.
 
+**YouTube**: there is no quality setting. Wavekeep takes the best audio stream, preferring Opus, then AAC, then MP3, and saves it without re-encoding (Opus as `.ogg`, AAC as `.m4a`, MP3 as `.mp3`). Downloads show what they got, such as "YouTube OPUS 130 kbps" or "YouTube AAC 129 kbps".
+
 ### Why did my Deezer download fall back to a lower quality?
 
-Not every track exists in every quality. Wavekeep tries your selected Deezer quality first and then falls back: **FLAC → MP3 320 kbps → MP3 128 kbps** (MP3 320 falls back to MP3 128). Completed downloads show the requested and the actual quality when a fallback happened. Spotify picks the closest available format for its own setting; SoundCloud always takes its best stream and shows what it got, such as "SoundCloud AAC 160 kbps".
+Not every track exists in every quality. Wavekeep tries your selected Deezer quality first and then falls back: **FLAC → MP3 320 kbps → MP3 128 kbps** (MP3 320 falls back to MP3 128). Completed downloads show the requested and the actual quality when a fallback happened. Spotify picks the closest available format for its own setting; SoundCloud and YouTube always take their best stream and show what they got, such as "SoundCloud AAC 160 kbps".
 
 ### Where are my downloads saved?
 
@@ -87,13 +94,13 @@ Slashes inside metadata, such as `AC/DC`, become underscores and never create fo
 
 ### Can I download whole albums, playlists, Loved Tracks or my own playlists?
 
-Yes. Click **Download All** on an album or playlist, or click its title to pick individual tracks (this also works for albums in an artist's discography). In Search, the **Loved Tracks** tab lists your favourites with **Download All**, and **My Playlists** lists your profile's playlists. This works for Deezer, including private playlists, and for Spotify. Pasted links to supported private playlists work too. SoundCloud has no login, so it has no Loved Tracks or My Playlists; open an artist and choose **All tracks** to get their uploads.
+Yes. Click **Download All** on an album or playlist, or click its title to pick individual tracks (this also works for albums in an artist's discography). In Search, the **Loved Tracks** tab lists your favourites with **Download All**, and **My Playlists** lists your profile's playlists. This works for Deezer, including private playlists, and for Spotify. Pasted links to supported private playlists work too. SoundCloud and YouTube have no login, so they have no Loved Tracks or My Playlists; open an artist (on YouTube, a channel) and choose **All tracks** to get their uploads.
 
 Wavekeep runs three downloads at the same time by default; change **Simultaneous Downloads** in Settings (1 to 10).
 
 ### Will Wavekeep download a track again if I already have it?
 
-Not by default. With **Skip Existing Files** on, Wavekeep checks whether a supported audio file already exists at the path it would save to (Deezer: MP3 and FLAC; Spotify: OGG, FLAC, MP3 and M4A; SoundCloud: M4A and MP3). A non-empty match is skipped and shown as "Already downloaded", even if you cleared the history.
+Not by default. With **Skip Existing Files** on, Wavekeep checks whether a supported audio file already exists at the path it would save to (Deezer: MP3 and FLAC; Spotify: OGG, FLAC, MP3 and M4A; SoundCloud: M4A and MP3; YouTube: OGG, M4A and MP3). A non-empty match is skipped and shown as "Already downloaded", even if you cleared the history.
 
 Only the current folder structure is checked, so files saved under an earlier structure are not found. With the setting off, a second copy is saved with a numbered name such as `Artist - Title (1).mp3`.
 
@@ -124,11 +131,11 @@ Yes. See [Read this first](#read-this-first). Wavekeep never asks for your Deeze
 
 ### What does Wavekeep collect or send?
 
-**Nothing goes to the developer.** There is no analytics, telemetry, crash reporting, update check or Wavekeep server. Wavekeep only talks to Deezer, Spotify and SoundCloud (and their image and audio servers) to log in, search, preview and download. Your Spotify login happens in your browser on Spotify's own page.
+**Nothing goes to the developer.** There is no analytics, telemetry, crash reporting, update check or Wavekeep server. Wavekeep only talks to Deezer, Spotify, SoundCloud and YouTube (and their image and audio servers) to log in, search, preview and download; with a Widevine device chosen, SoundCloud DRM tracks also need a licence request to SoundCloud's licence server. Your Spotify login happens in your browser on Spotify's own page. For YouTube, Wavekeep runs the yt-dlp and ffmpeg programs installed on your computer: yt-dlp looks up YouTube (with its own config files ignored and its self-update turned off), and ffmpeg only repackages the downloaded file.
 
 | Stored on your computer | Where | How to remove it |
 |---|---|---|
-| Settings, incl. your last 20 searches | `settings.json` in the app-data folder | Clear or turn off search history in Settings |
+| Settings, incl. your last 20 searches and the path of your Widevine device file | `settings.json` in the app-data folder | Clear or turn off search history in Settings; **Remove** the device under SoundCloud DRM |
 | Download history | `download_history.json` | Clear it in Downloads |
 | Custom themes | `themes/` | Delete them in Settings |
 | Deezer ARL and Spotify logins | OS credential store (the ARL goes into `settings.json` only if that store is unavailable) | Log out or disconnect in Settings |
@@ -151,7 +158,7 @@ Yes, a diagnostic log that never leaves your computer unless you share it. It is
 
 ### What local files can Wavekeep access?
 
-Only the audio files and cover images you pick in its own file dialogs, plus audio files in your download folder. The Tag Editor keeps a hidden `.wavekeep.bak` copy while saving and restores the file if the save fails. Settings, history and themes live in the app-data folder.
+Only the audio files and cover images you pick in its own file dialogs, the Widevine device file you choose under **SoundCloud DRM**, plus audio files in your download folder. The Tag Editor keeps a hidden `.wavekeep.bak` copy while saving and restores the file if the save fails. Settings, history and themes live in the app-data folder.
 
 ---
 
@@ -162,11 +169,13 @@ Only the audio files and cover images you pick in its own file dialogs, plus aud
 - Check your internet connection.
 - **Deezer:** save a current ARL, and try MP3 128 kbps if higher quality is unavailable.
 - **Spotify:** disconnect and reconnect in Settings.
+- **SoundCloud:** a track that is only offered DRM-protected needs a Widevine device under **Settings → SoundCloud DRM**; 30-second previews are never downloaded.
+- **YouTube:** update yt-dlp, and check that yt-dlp, Deno and ffmpeg are on your PATH; restart Wavekeep after installing them.
 - Pause and resume the download, or retry it from the history.
 - Fully exit Wavekeep from the tray and start it again.
 - Press **Copy recent log** in Info & FAQ: it shows the exact error (see [How do I report a problem?](#how-do-i-report-a-problem)).
 
-Interrupted downloads come back paused after a restart; queued tracks that had not started are not saved. A track can also be unavailable in your region. Quitting through Wavekeep cancels downloads and cleans up (at most 30 seconds); after a crash an unfinished `.wavekeep.part` file may remain, and you can delete it.
+Interrupted downloads come back paused after a restart; queued tracks that had not started are not saved. A track can also be unavailable in your region. Quitting through Wavekeep cancels downloads and cleans up (at most 30 seconds); after a crash an unfinished `.wavekeep.part` file (and, for YouTube, a hidden `.wavekeep-youtube-…` folder) may remain in the download folder, and you can delete it.
 
 ### My ARL expired or stopped working.
 
@@ -180,15 +189,20 @@ The default Client ID is shared by every librespot install, so its search quota 
 2. Paste its Client ID into **Settings → Spotify Client ID** (this disconnects you).
 3. Reconnect and approve **both** browser logins: one for downloads (always the default ID) and one for search and your playlists.
 
-Downloads do not depend on this quota. An app in Spotify's development mode can carry limits Wavekeep cannot see. `WAVEKEEP_SPOTIFY_CLIENT_ID` works as an override when the field is blank. If a login hangs, it gives up after 5 minutes and frees port 5588. From the next version, connecting also checks your account type through this quota; if it is used up, connecting fails with the rate-limit message until you set your own Client ID or try again later.
+Downloads do not depend on this quota. An app in Spotify's development mode can carry limits Wavekeep cannot see. `WAVEKEEP_SPOTIFY_CLIENT_ID` works as an override when the field is blank. If a login hangs, it gives up after 5 minutes and frees port 5588. From the next version, connecting, and restoring your saved login at startup, also checks your account type through this quota (with your own Client ID when you set one); if it is used up, Spotify does not connect and shows the rate-limit message until you set your own Client ID or try again later. A saved login is kept for the next start.
 
 ### A link, album or playlist does not load.
 
-Use a full `https://` link from `deezer.com` (`/track/`, `/album/`, `/artist/` or `/playlist/` with a numeric ID), `open.spotify.com` or `soundcloud.com`; short links (including `on.soundcloud.com`) are not supported. A failed page while loading is reported as an error instead of a shorter list, so check your connection and retry. If it still fails, update your ARL (Deezer) and check that the content is available in your region.
+Use a full `https://` link from `deezer.com` (`/track/`, `/album/`, `/artist/` or `/playlist/` with a numeric ID), `open.spotify.com`, `soundcloud.com`, `youtube.com` or `youtu.be` (see [Can I paste a link to download?](#can-i-paste-a-link-to-download)); other short links (such as `on.soundcloud.com`) are not supported. A failed page while loading is reported as an error instead of a shorter list, so check your connection and retry. If it still fails, update your ARL (Deezer) or yt-dlp (YouTube) and check that the content is available in your region.
 
-### Covers or previews do not load.
+### Covers, previews or a source do not load.
 
-Update to the latest release and allow HTTPS to `api.deezer.com`, `*.dzcdn.net`, `api.spotify.com`, `*.scdn.co`, `*.spotifycdn.com`, `api-v2.soundcloud.com` and `*.sndcdn.com` in your firewall, DNS filter or proxy.
+Update to the latest release and allow HTTPS to these hosts in your firewall, DNS filter or proxy:
+
+- **Deezer:** `www.deezer.com`, `api.deezer.com`, `media.deezer.com` and `*.dzcdn.net` (covers, previews and audio).
+- **Spotify:** `api.spotify.com`, `accounts.spotify.com` (login), `*.scdn.co` and `*.spotifycdn.com` (covers), plus Spotify's own servers that librespot connects to for downloads.
+- **SoundCloud:** `soundcloud.com`, `api-v2.soundcloud.com`, `*.sndcdn.com` (covers and some streams) and `*.media-streaming.soundcloud.cloud` (streams and DRM licences).
+- **YouTube:** `www.youtube.com`, `*.googlevideo.com` (audio), `*.ytimg.com`, `*.ggpht.com` and `*.googleusercontent.com` (thumbnails).
 
 ### The app shows a blank or black screen.
 
@@ -248,7 +262,7 @@ Good to know:
 
 ### Is Wavekeep legal to use?
 
-Wavekeep is provided for educational and personal use, but that does not make every use lawful. Downloading or extracting music can violate [Deezer's](https://www.deezer.com/legal/cgu), [Spotify's](https://www.spotify.com/legal/end-user-agreement/) or [SoundCloud's](https://soundcloud.com/pages/terms) terms of service, copyright law, or all of them. A subscription does not give you permission to copy or share recordings.
+Wavekeep is provided for educational and personal use, but that does not make every use lawful. Downloading or extracting music can violate [Deezer's](https://www.deezer.com/legal/cgu), [Spotify's](https://www.spotify.com/legal/end-user-agreement/), [SoundCloud's](https://soundcloud.com/pages/terms) or [YouTube's](https://www.youtube.com/t/terms) terms of service, copyright law, or all of them. A subscription does not give you permission to copy or share recordings.
 
 Laws differ by country. You alone are responsible for finding out whether your use is allowed and for getting any permission you need. This FAQ is not legal advice. Do not redistribute downloaded music or use it commercially without the rights holders' permission.
 
