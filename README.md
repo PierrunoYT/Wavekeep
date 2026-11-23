@@ -43,7 +43,7 @@ A modern desktop Deezer, Spotify and SoundCloud downloader. Search for tracks, a
 - **Album & playlist download** – Download all tracks with one click, or open an album or playlist to pick individual tracks
 - **Skip existing files** – Tracks whose audio file is already at the destination are skipped, even after clearing history
 - **Download pacing** – Optional pause between downloads and a total speed limit, including presets that match playback speed
-- **Quality options** – Deezer MP3 128, MP3 320, or FLAC; Spotify 96/160/320 kbps or lossless FLAC, with format fallback; SoundCloud always takes its best unencrypted stream
+- **Quality options** - Deezer MP3 128, MP3 320, or FLAC; Spotify 96/160/320 kbps or lossless FLAC, with format fallback; SoundCloud always takes its best stream (Widevine-encrypted ones need a `.wvd` device file chosen in Settings)
 - **Full metadata** – Title, artist, album, year, track and disc number, and cover art embedded; Deezer downloads also fill the album-artist tag (with the track's main artist), which Spotify downloads do not
 - **Folder structure** – Organize downloads as Flat, Artist/Track, Artist/Album/Track, Album/Track, or with a custom template
 - **Tag editor** – Edit metadata and cover art on any local MP3, FLAC, OGG, or M4A file (including Spotify downloads); files with an unreadable tag are reported and left untouched instead of being overwritten

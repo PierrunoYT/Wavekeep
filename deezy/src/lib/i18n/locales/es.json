@@ -444,7 +444,7 @@
       },
       "failed": {
         "q": "Una descarga falló. ¿Qué hago?",
-        "a": "Pulsa Reintentar en Descargas. En Deezer, comprueba que tu ARL siga siendo válido en Configuración. En Spotify, desconecta y vuelve a conectar. Si sigue fallando, pulsa «Copiar registro reciente» en la pestaña Importante e inclúyelo en tu informe."
+        "a": "Pulsa Reintentar en Descargas. En Deezer, comprueba que tu ARL siga siendo válido en Configuración. En Spotify, desconecta y vuelve a conectar. Una pista de SoundCloud que solo se ofrece con DRM necesita un dispositivo Widevine (.wvd) elegido en Configuración, en DRM de SoundCloud. Si sigue fallando, pulsa «Copiar registro reciente» en la pestaña Importante e inclúyelo en tu informe."
       },
       "tags": {
         "q": "¿Cómo edito etiquetas o carátulas?",

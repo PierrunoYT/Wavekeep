@@ -444,7 +444,7 @@
       },
       "failed": {
         "q": "Ein Download ist fehlgeschlagen. Was tun?",
-        "a": "Klicke in Downloads auf Wiederholen. Prüfe bei Deezer in den Einstellungen, ob dein ARL noch gültig ist. Trenne bei Spotify die Verbindung und verbinde dich neu. Schlägt es weiter fehl, klicke im Tab „Wichtig“ auf „Aktuelles Protokoll kopieren“ und füge es deiner Meldung bei."
+        "a": "Klicke in Downloads auf Wiederholen. Prüfe bei Deezer in den Einstellungen, ob dein ARL noch gültig ist. Trenne bei Spotify die Verbindung und verbinde dich neu. Ein SoundCloud-Titel, der nur mit DRM angeboten wird, braucht ein Widevine-Gerät (.wvd), das in den Einstellungen unter SoundCloud-DRM gewählt wird. Schlägt es weiter fehl, klicke im Tab „Wichtig“ auf „Aktuelles Protokoll kopieren“ und füge es deiner Meldung bei."
       },
       "tags": {
         "q": "Wie bearbeite ich Tags oder Cover?",

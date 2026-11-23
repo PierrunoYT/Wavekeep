@@ -1,6 +1,6 @@
 # Wavekeep FAQ
 
-This FAQ describes Wavekeep 0.3.0 and what is coming in the next version: the SoundCloud source and the Spotify Premium check are not in 0.3.0 yet. Use the headings to jump to what you need.
+This FAQ describes Wavekeep 0.3.0 and what is coming in the next version: the SoundCloud source (including its optional Widevine DRM) and the Spotify Premium check are not in 0.3.0 yet. Use the headings to jump to what you need.
 
 ---
 
@@ -248,7 +248,7 @@ Good to know:
 
 ### Is Wavekeep legal to use?
 
-Wavekeep is provided for educational and personal use, but that does not make every use lawful. Downloading or extracting music can violate [Deezer's](https://www.deezer.com/legal/cgu) or [Spotify's](https://www.spotify.com/legal/end-user-agreement/) terms of service, copyright law, or both. A subscription does not give you permission to copy or share recordings.
+Wavekeep is provided for educational and personal use, but that does not make every use lawful. Downloading or extracting music can violate [Deezer's](https://www.deezer.com/legal/cgu), [Spotify's](https://www.spotify.com/legal/end-user-agreement/) or [SoundCloud's](https://soundcloud.com/pages/terms) terms of service, copyright law, or all of them. A subscription does not give you permission to copy or share recordings.
 
 Laws differ by country. You alone are responsible for finding out whether your use is allowed and for getting any permission you need. This FAQ is not legal advice. Do not redistribute downloaded music or use it commercially without the rights holders' permission.
 

@@ -444,7 +444,7 @@
             },
             "failed": {
                 "q": "Un download non è riuscito. Cosa posso fare?",
-                "a": "Premi Riprova in Download. Per Deezer, controlla che il tuo ARL sia ancora valido nelle Impostazioni. Per Spotify, disconnetti e riconnetti. Se continua a fallire, premi «Copia registro recente» nella scheda Importante e allegalo alla segnalazione."
+                "a": "Premi Riprova in Download. Per Deezer, controlla che il tuo ARL sia ancora valido nelle Impostazioni. Per Spotify, disconnetti e riconnetti. Una traccia di SoundCloud disponibile solo con DRM richiede un dispositivo Widevine (.wvd) scelto nelle Impostazioni, in DRM di SoundCloud. Se continua a fallire, premi «Copia registro recente» nella scheda Importante e allegalo alla segnalazione."
             },
             "tags": {
                 "q": "Come modifico tag o copertina?",

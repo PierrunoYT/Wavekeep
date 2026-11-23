@@ -49,10 +49,11 @@ Paths below are relative to `deezy/`.
 | `src/lib/tray.ts` | Tray event listener and status subscriptions |
 | `src/lib/components/search/` | Search and library (Loved Tracks, My Playlists) result rendering, types, and styles |
 | `src-tauri/src/lib.rs` | Managed application state, command registration, window events |
-| `src-tauri/src/commands/` | IPC handlers grouped by account, catalog, diagnostics (log), downloads, filesystem, history, settings, Spotify, tag editor, themes, and tray |
+| `src-tauri/src/commands/` | IPC handlers grouped by account, catalog, diagnostics (log), downloads, filesystem, history, settings, SoundCloud (search, links, Widevine device picker), Spotify, tag editor, themes, and tray |
 | `src-tauri/src/deezer/` | Authentication, gateway and catalog requests, user library (Loved Tracks, profile playlists), media resolution, crypto, downloads, models, and the bandwidth limiter shared with Spotify and SoundCloud |
 | `src-tauri/src/spotify/` | OAuth/AP sessions, Web API and Pathfinder search, AP catalog metadata, librespot audio streaming, and OGG/FLAC/MP3/M4A tagging (also used by SoundCloud) |
-| `src-tauri/src/soundcloud/` | Anonymous `api-v2` client (client_id lookup, search, catalog, link resolving) and HLS/progressive downloads |
+| `src-tauri/src/soundcloud/` | Anonymous `api-v2` client (client_id lookup, search, catalog, link resolving) and HLS/progressive/DRM downloads |
+| `src-tauri/src/widevine.rs` | Widevine (L3) licence exchange and CENC decryption behind SoundCloud's DRM streams; needs a user-picked `.wvd` device |
 | `src-tauri/src/paths.rs` | Provider-neutral destination paths and safe temp-file finalization shared by all three engines |
 | `src-tauri/src/settings.rs` | Validated settings, credential storage, atomic private-file writes |
 | `src-tauri/src/themes.rs` | Custom theme validation and persistence |
@@ -84,7 +85,8 @@ macOS and Linux, which is not atomic.
 
 With skip existing files enabled (the default), the backend first builds the
 destination path and checks for a non-empty supported audio file. Deezer checks
-`.mp3` and `.flac`; Spotify checks `.ogg`, `.flac`, `.mp3`, and `.m4a`. A match
+`.mp3` and `.flac`; Spotify checks `.ogg`, `.flac`, `.mp3`, and `.m4a`;
+SoundCloud checks `.m4a` and `.mp3`. A match
 returns `status: "skipped"` without opening an audio stream. Only the current
 folder structure is checked; the download folder is not scanned.
 
@@ -139,8 +141,12 @@ restart. Because both logins reuse the callback port, the success page carries
 an empty favicon and the second login waits briefly and retries on a stray
 request.
 
-The Spotify account type (`Profile.product`) is only written to the log, never shown or enforced,
-and Free-account audio access through librespot has not been verified. Available
+The Spotify account type (`Profile.product`, from `GET /v1/me` through
+`premium_profile`) is checked before every session opens: only `premium` passes,
+a Free or Open account refuses with "Spotify Premium is required", and any
+doubt (network error, rate limit, missing `product`) refuses too, keeping the
+stored login. The account type and name shown in Settings come from that
+answer. Available
 quality depends on the formats Spotify lists for each track.
 
 Logging goes through `src-tauri/src/logging.rs` (`logging::info("area", ...)`
@@ -206,7 +212,8 @@ that review. Test these separately when changes affect those paths.
    section. Keep source-only changes distinct from shipped installer behavior.
 4. Install locked dependencies and run `npm test`, `npm run check`, `npm run build`,
    and `cargo test --manifest-path src-tauri/Cargo.toml`.
-5. Smoke-test Deezer and Spotify login/session restoration, SoundCloud search and links (no login), search and rate-limit
+5. Smoke-test Deezer and Spotify login/session restoration, SoundCloud search and links (no login; one DRM track when a
+   Widevine device is set), search and rate-limit
    fallback, catalog loading, previews where available, download/pause/resume,
    tagging, restart recovery, themes, and tray shutdown on the release platform.
 6. Build with `bun run tauri build` and verify the generated artifacts under

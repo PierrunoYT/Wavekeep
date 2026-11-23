@@ -444,7 +444,7 @@
       },
       "failed": {
         "q": "Un téléchargement a échoué. Que faire ?",
-        "a": "Cliquez sur Réessayer dans Téléchargements. Pour Deezer, vérifiez que votre ARL est toujours valide dans les Paramètres. Pour Spotify, déconnectez-vous puis reconnectez-vous. Si l'échec persiste, cliquez sur « Copier le journal récent » dans l'onglet Important et joignez-le à votre signalement."
+        "a": "Cliquez sur Réessayer dans Téléchargements. Pour Deezer, vérifiez que votre ARL est toujours valide dans les Paramètres. Pour Spotify, déconnectez-vous puis reconnectez-vous. Un titre SoundCloud proposé uniquement avec DRM nécessite un appareil Widevine (.wvd) choisi dans les Paramètres, sous DRM SoundCloud. Si l'échec persiste, cliquez sur « Copier le journal récent » dans l'onglet Important et joignez-le à votre signalement."
       },
       "tags": {
         "q": "Comment modifier les tags ou la pochette ?",

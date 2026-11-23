@@ -444,7 +444,7 @@
             },
             "failed": {
                 "q": "Uma transferência falhou. O que posso fazer?",
-                "a": "Carrega em Tentar novamente em Transferências. No Deezer, verifica se o teu ARL continua válido nas Definições. No Spotify, desliga e volta a ligar. Se continuar a falhar, carrega em «Copiar registo recente» no separador Importante e junta-o ao teu relatório."
+                "a": "Carrega em Tentar novamente em Transferências. No Deezer, verifica se o teu ARL continua válido nas Definições. No Spotify, desliga e volta a ligar. Uma faixa do SoundCloud disponível apenas com DRM precisa de um dispositivo Widevine (.wvd) escolhido nas Definições, em DRM do SoundCloud. Se continuar a falhar, carrega em «Copiar registo recente» no separador Importante e junta-o ao teu relatório."
             },
             "tags": {
                 "q": "Como edito etiquetas ou capas?",

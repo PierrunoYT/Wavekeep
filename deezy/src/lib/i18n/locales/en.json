@@ -444,7 +444,7 @@
       },
       "failed": {
         "q": "A download failed. What can I do?",
-        "a": "Press Retry in Downloads. For Deezer, check that your ARL is still valid in Settings. For Spotify, disconnect and connect again. If it keeps failing, press Copy recent log on the Important tab and include it in your report."
+        "a": "Press Retry in Downloads. For Deezer, check that your ARL is still valid in Settings. For Spotify, disconnect and connect again. A SoundCloud track that is only offered DRM-protected needs a Widevine device (.wvd) chosen in Settings under SoundCloud DRM. If it keeps failing, press Copy recent log on the Important tab and include it in your report."
       },
       "tags": {
         "q": "How do I edit tags or cover art?",
