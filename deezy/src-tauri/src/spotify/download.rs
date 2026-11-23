@@ -266,9 +266,9 @@ pub async fn download_track(
     crate::logging::info("spotify", format!("stream complete: {} bytes, tagging", downloaded));
     emit_progress(app, track_key, &track.title, 92.0, "tagging");
 
-    let cover = fetch_cover(client, &track.cover_medium).await;
+    let cover = fetch_cover(&client.http, &track.cover_medium).await;
     let tag_path = temp_path.clone();
-    let tag_track = track.clone();
+    let tag_track = tags::TrackTags::from(&track);
     let tag_ext = ext.to_string();
     // A panicking tagger (lofty on malformed audio) is a tag failure like any
     // other: the audio is intact.
@@ -351,7 +351,7 @@ fn is_audio_magic(bytes: &[u8]) -> bool {
 }
 
 /// Whether `bytes` begins like audio of the container `ext` names.
-fn looks_like(ext: &str, bytes: &[u8]) -> bool {
+pub(crate) fn looks_like(ext: &str, bytes: &[u8]) -> bool {
     match ext {
         ".ogg" => bytes.starts_with(b"OggS"),
         ".flac" => bytes.starts_with(b"fLaC"),
@@ -510,14 +510,13 @@ fn label_for(format: AudioFileFormat) -> String {
     }
 }
 
-async fn fetch_cover(client: &SpotifyClient, url: &str) -> Option<Vec<u8>> {
+pub(crate) async fn fetch_cover(http: &reqwest::Client, url: &str) -> Option<Vec<u8>> {
     if url.is_empty() {
         return None;
     }
 
     // Bounded, so a stalled server cannot hold the download at "tagging".
-    let response = client
-        .http
+    let response = http
         .get(url)
         .timeout(COVER_TIMEOUT)
         .send()
@@ -547,7 +546,7 @@ async fn fetch_cover(client: &SpotifyClient, url: &str) -> Option<Vec<u8>> {
     (!bytes.is_empty()).then_some(bytes)
 }
 
-fn emit_progress(
+pub(crate) fn emit_progress(
     app: &tauri::AppHandle,
     track_id: &str,
     title: &str,

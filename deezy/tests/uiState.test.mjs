@@ -4,8 +4,10 @@ import { deferred, loadModule, settle } from './helpers.mjs';
 
 function searchSetup() {
   const pending = new Map();
+  const calls = [];
   const api = loadModule('../src/lib/components/SearchView.svelte', {
     '@tauri-apps/api/core': { invoke(command, args) {
+      calls.push({ command, args });
       const request = deferred(); pending.set(args?.artistId ?? args?.playlistId ?? command, request); return request.promise;
     } },
     '$lib/stores': {}, '$lib/downloadQueue': {}, '$lib/rateLimiter': {},
@@ -13,11 +15,11 @@ function searchSetup() {
     'svelte-i18n': {}, './search/SearchResults.svelte': {}, './search/SearchView.css': {},
     './search/types': loadModule('../src/lib/components/search/types.ts', {})
   }, { $state: value => value, $derived: value => value, $effect() {}, $_: key => key }, `
-    export { openArtist, closeArtist, openPlaylist, closePlaylist, switchSearchType };
+    export { openArtist, closeArtist, openAlbum, openPlaylist, closePlaylist, switchSearchType, switchSource };
     export const login = () => { isLoggedIn = true; };
-    export const inspect = () => ({ selectedArtist, artistAlbums, loadingDiscography, selectedPlaylist, playlistTracks, loadingPlaylist, results, playlistResults, searching, errorMsg });
+    export const inspect = () => ({ selectedArtist, artistAlbums, loadingDiscography, selectedPlaylist, playlistTracks, loadingPlaylist, results, playlistResults, searching, errorMsg, searchType });
   `);
-  return { api, pending };
+  return { api, pending, calls };
 }
 
 test('older artist results cannot replace the current artist or finish its loading state', async () => {
@@ -62,6 +64,27 @@ test('a library tab that finishes loading after another tab opened cannot replac
   await settle();
   assert.equal(api.inspect().searching, false);
   assert.equal(api.inspect().errorMsg, 'search.library.noPlaylists');
+});
+
+test('SoundCloud needs no login, leaves the library tabs and lists an artist\'s uploads first', async () => {
+  const { api, pending, calls } = searchSetup();
+  api.switchSearchType('loved');
+  api.switchSource('soundcloud');
+  assert.equal(api.inspect().searchType, 'tracks');
+  assert.equal(api.inspect().errorMsg, '');
+
+  const artist = api.openArtist('2976616', 'Flume', 'pic.jpg');
+  assert.equal(calls.at(-1).command, 'get_soundcloud_artist_albums');
+  pending.get('2976616').resolve([{ id: '3802291', title: 'Flume', provider: 'soundcloud' }]);
+  await artist;
+  const [uploads, album] = api.inspect().artistAlbums;
+  assert.equal(uploads.id, 'user:2976616');
+  assert.equal(uploads.title, 'search.artist.allTracks');
+  assert.equal(album.id, '3802291');
+
+  api.openAlbum(uploads);
+  assert.equal(calls.at(-1).command, 'get_soundcloud_album_tracks');
+  assert.equal(calls.at(-1).args.albumId, 'user:2976616');
 });
 
 function themeSetup() {

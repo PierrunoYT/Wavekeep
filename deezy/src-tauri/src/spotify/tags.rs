@@ -8,11 +8,40 @@ use lofty::tag::{Accessor, ItemKey, Tag, TagType};
 
 use super::api::SpotifyTrack;
 
+/// The tag fields the Spotify and SoundCloud engines write.
+#[derive(Debug, Clone)]
+pub struct TrackTags {
+    pub title: String,
+    pub artist: String,
+    /// Left out of the file when empty.
+    pub album: String,
+    /// 0 when unknown.
+    pub track_number: u32,
+    pub disc_number: u32,
+    pub release_date: Option<String>,
+    pub isrc: Option<String>,
+}
+
+impl From<&SpotifyTrack> for TrackTags {
+    fn from(track: &SpotifyTrack) -> Self {
+        Self {
+            title: track.title.clone(),
+            artist: track.artist.clone(),
+            album: track.album.clone(),
+            track_number: track.track_number,
+            disc_number: track.disc_number,
+            release_date: track.release_date.clone(),
+            isrc: track.isrc.clone(),
+        }
+    }
+}
+
 /// Writes Vorbis comments (OGG/FLAC), ID3v2 (MP3) or MP4 ilst tags plus the
-/// album cover. Uses one tag model for every container Spotify can deliver.
+/// album cover. Uses one tag model for every container Spotify and SoundCloud
+/// can deliver.
 pub fn write_tags(
     path: &Path,
-    track: &SpotifyTrack,
+    track: &TrackTags,
     cover: Option<Vec<u8>>,
     ext: &str,
 ) -> Result<(), String> {
@@ -26,7 +55,7 @@ pub fn write_tags(
         .map_err(|e| format!("Tag read error: {}", e))?;
 
     // The temp file's own extension is `.part`, so the real container comes
-    // from the selected Spotify format.
+    // from the selected format.
     let tag_type = match ext.trim_start_matches('.').to_ascii_lowercase().as_str() {
         "mp3" => TagType::Id3v2,
         "m4a" | "mp4" => TagType::Mp4Ilst,
@@ -43,7 +72,9 @@ pub fn write_tags(
 
     tag.set_title(track.title.clone());
     tag.set_artist(track.artist.clone());
-    tag.set_album(track.album.clone());
+    if !track.album.is_empty() {
+        tag.set_album(track.album.clone());
+    }
     if track.track_number > 0 {
         tag.set_track(track.track_number);
     }

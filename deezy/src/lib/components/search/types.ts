@@ -1,4 +1,4 @@
-export type Provider = 'deezer' | 'spotify';
+export type Provider = 'deezer' | 'spotify' | 'soundcloud';
 export type CatalogId = number | string;
 
 export interface AlbumResult {
@@ -54,4 +54,43 @@ export type SearchType = CatalogSearchType | LibraryType;
 
 export function isLibraryType(type: SearchType): type is LibraryType {
   return type === 'loved' || type === 'myPlaylists';
+}
+
+/** Catalog lookups that every provider offers, each under its own command. */
+export type CatalogCommand = 'track' | 'albumTracks' | 'playlistTracks' | 'artistAlbums';
+
+const CATALOG_COMMANDS: Record<Provider, Record<CatalogCommand, string>> = {
+  deezer: {
+    track: 'get_track_by_id',
+    albumTracks: 'get_album_tracks',
+    playlistTracks: 'get_playlist_tracks',
+    artistAlbums: 'get_artist_albums'
+  },
+  spotify: {
+    track: 'get_spotify_track',
+    albumTracks: 'get_spotify_album_tracks',
+    playlistTracks: 'get_spotify_playlist_tracks',
+    artistAlbums: 'get_spotify_artist_albums'
+  },
+  soundcloud: {
+    track: 'get_soundcloud_track',
+    albumTracks: 'get_soundcloud_album_tracks',
+    playlistTracks: 'get_soundcloud_playlist_tracks',
+    artistAlbums: 'get_soundcloud_artist_albums'
+  }
+};
+
+/** The command for `kind` on `provider`; results without a provider are Deezer's. */
+export function catalogCommand(provider: Provider | undefined, kind: CatalogCommand): string {
+  return CATALOG_COMMANDS[provider ?? 'deezer'][kind];
+}
+
+/** Search command for a catalog tab, e.g. `search_tracks` or `search_soundcloud_tracks`. */
+export function searchCommand(provider: Provider, type: CatalogSearchType): string {
+  return provider === 'deezer' ? `search_${type}` : `search_${provider}_${type}`;
+}
+
+/** Album ID that lists every upload of a SoundCloud user (`get_soundcloud_album_tracks`). */
+export function soundcloudUserTracksId(userId: CatalogId): string {
+  return `user:${userId}`;
 }

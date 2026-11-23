@@ -75,6 +75,9 @@ async fn execute_download_track(
     if crate::spotify::is_spotify_track(track_id) {
         return execute_spotify_download(track_id, state, app, cancel_flag).await;
     }
+    if crate::soundcloud::is_soundcloud_track(track_id) {
+        return execute_soundcloud_download(track_id, state, app, cancel_flag).await;
+    }
 
     // Get or recreate the client
     let (mut client, output_dir, quality, folder_structure, custom_folder_template, arl, skip_existing, speed_limit_kbps) = {
@@ -214,6 +217,37 @@ async fn execute_spotify_download(
         track_id,
         &output_dir,
         &quality,
+        &folder_structure,
+        &custom_folder_template,
+        skip_existing,
+        &state.bandwidth,
+        speed_limit_kbps,
+        app,
+        cancel_flag,
+    )
+    .await
+}
+
+async fn execute_soundcloud_download(
+    track_id: &str,
+    state: &AppState,
+    app: &AppHandle,
+    cancel_flag: Arc<AtomicBool>,
+) -> Result<DownloadResult, String> {
+    let (output_dir, folder_structure, custom_folder_template, skip_existing, speed_limit_kbps) = {
+        let settings = state.settings.lock().await;
+        (
+            settings.output_dir.clone(),
+            settings.folder_structure.clone(),
+            settings.custom_folder_template.clone(),
+            settings.skip_existing_files,
+            settings.download_speed_limit_kbps,
+        )
+    };
+
+    crate::soundcloud::download::download_track(
+        track_id,
+        &output_dir,
         &folder_structure,
         &custom_folder_template,
         skip_existing,

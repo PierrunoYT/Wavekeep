@@ -4,6 +4,10 @@ All notable changes to Wavekeep (formerly Deezy) are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **SoundCloud source** — Search SoundCloud tracks, albums, artists and playlists, open an artist's uploads ("All tracks"), albums and playlists, and paste `soundcloud.com` track, set or profile links. No account is needed. Wavekeep downloads the best stream SoundCloud serves without encryption (today usually AAC 160 kbps, saved as `.m4a`; MP3 128 when that is better or the only option) and tags it with title, artist, release date, ISRC and artwork. Tracks that SoundCloud only streams DRM-protected (many major-label releases) or as a 30-second preview are refused with a message saying so; Wavekeep does not decrypt them. Downloads use the same queue, folder structure, skip-existing check and speed limit as the other sources.
+
 ### Fixed
 
 - **Wavekeep closed right after the Spotify login with a Free account** — The Spotify library Wavekeep uses ends the whole program when it connects to a Spotify Free account, without any error or log line. Wavekeep now checks the account type right after the browser login (and on startup for a saved login) and refuses to connect with "Spotify Premium is required" instead; a saved Free-account login is removed. If the account type cannot be checked (network error or rate limit), Wavekeep does not connect either. The account type and name shown in Settings now come from Spotify's account data, so a Premium account is no longer sometimes shown as Free.

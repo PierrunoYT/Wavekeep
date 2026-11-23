@@ -9,7 +9,10 @@
   import { _ } from 'svelte-i18n';
   import SearchResults from './search/SearchResults.svelte';
   import {
+    catalogCommand,
     isLibraryType,
+    searchCommand,
+    soundcloudUserTracksId,
     type AlbumResult,
     type ArtistResult,
     type CatalogId,
@@ -96,8 +99,9 @@
     }
   });
 
-  /** Whether the selected source can run a search right now. */
+  /** Whether the selected source can run a search right now. SoundCloud needs no account. */
   function canSearch(): boolean {
+    if (source === 'soundcloud') return true;
     return source === 'spotify' ? spotifyAvailable : isLoggedIn;
   }
 
@@ -247,7 +251,7 @@
     }
   }
 
-  /** Switches between the Deezer and Spotify catalogs. */
+  /** Switches between the Deezer, Spotify and SoundCloud catalogs. */
   function switchSource(next: Provider): void {
     if (next === source) return;
     if (next === 'spotify' && !spotifyAvailable) {
@@ -262,6 +266,8 @@
     activeSearchToken += 1;
     searching = false;
     source = next;
+    // SoundCloud has no account, so no library tabs; fall back to track search.
+    if (next === 'soundcloud' && isLibraryType(searchType)) searchType = 'tracks';
     resetResults();
     errorMsg = '';
     showSearchHistory = false;
@@ -357,9 +363,7 @@
         return;
       }
 
-      const command = requestedSource === 'spotify'
-        ? `search_spotify_${requestedType}`
-        : `search_${requestedType}`;
+      const command = searchCommand(requestedSource, requestedType);
 
       const searchHandlers = {
         tracks: async () => {
@@ -419,10 +423,21 @@
     loadingDiscography = true;
 
     try {
-      const command = source === 'spotify' ? 'get_spotify_artist_albums' : 'get_artist_albums';
-      const data = await invoke<AlbumResult[]>(command, { artistId: String(id) });
+      const data = await invoke<AlbumResult[]>(catalogCommand(source, 'artistAlbums'), { artistId: String(id) });
       if (token !== activeArtistToken) return;
-      artistAlbums = data;
+      // Most SoundCloud artists only upload tracks, so their uploads come first as one entry.
+      artistAlbums = source === 'soundcloud'
+        ? [{
+            id: soundcloudUserTracksId(id),
+            title: $_('search.artist.allTracks'),
+            artist: name,
+            artist_id: id,
+            cover_small: picture,
+            cover_medium: picture,
+            nb_tracks: 0,
+            provider: 'soundcloud'
+          }, ...data]
+        : data;
       if (artistAlbums.length === 0) {
         discographyError = $_('search.artist.noAlbums');
       }
@@ -449,8 +464,7 @@
     loadingAlbum = true;
 
     try {
-      const command = album.provider === 'spotify' ? 'get_spotify_album_tracks' : 'get_album_tracks';
-      const data = await invoke<Track[]>(command, { albumId: String(album.id) });
+      const data = await invoke<Track[]>(catalogCommand(album.provider, 'albumTracks'), { albumId: String(album.id) });
       if (token !== activeAlbumToken) return;
       albumTracks = data;
       if (albumTracks.length === 0) {
@@ -485,8 +499,7 @@
     loadingPlaylist = true;
 
     try {
-      const command = playlist.provider === 'spotify' ? 'get_spotify_playlist_tracks' : 'get_playlist_tracks';
-      const data = await invoke<Track[]>(command, { playlistId: String(playlist.id) });
+      const data = await invoke<Track[]>(catalogCommand(playlist.provider, 'playlistTracks'), { playlistId: String(playlist.id) });
       if (token !== activePlaylistToken) return;
       playlistTracks = data;
       if (playlistTracks.length === 0) {
@@ -515,8 +528,7 @@
     try {
       let tracks = playlistTracks;
       if (tracks.length === 0) {
-        const command = playlist.provider === 'spotify' ? 'get_spotify_playlist_tracks' : 'get_playlist_tracks';
-        tracks = await invoke<Track[]>(command, { playlistId: String(playlist.id) });
+        tracks = await invoke<Track[]>(catalogCommand(playlist.provider, 'playlistTracks'), { playlistId: String(playlist.id) });
       }
       for (const track of tracks) {
         await downloadQueueManager.addToQueue(track);
@@ -536,8 +548,7 @@
     const searchToken = activeSearchToken;
 
     try {
-      const command = playlist.provider === 'spotify' ? 'get_spotify_playlist_tracks' : 'get_playlist_tracks';
-      const tracks = await invoke<Track[]>(command, { playlistId: String(playlist.id) });
+      const tracks = await invoke<Track[]>(catalogCommand(playlist.provider, 'playlistTracks'), { playlistId: String(playlist.id) });
       for (const track of tracks) {
         await downloadQueueManager.addToQueue(track);
       }
@@ -565,10 +576,7 @@
       // Reuse the track list already loaded for the open album.
       const tracks = selectedAlbum?.id === album.id && albumTracks.length > 0
         ? albumTracks
-        : await invoke<Track[]>(
-            album.provider === 'spotify' ? 'get_spotify_album_tracks' : 'get_album_tracks',
-            { albumId: String(album.id) }
-          );
+        : await invoke<Track[]>(catalogCommand(album.provider, 'albumTracks'), { albumId: String(album.id) });
       for (const track of tracks) {
         await downloadQueueManager.addToQueue(track);
       }
@@ -581,11 +589,6 @@
   }
 
   async function handleUrlInput(): Promise<void> {
-    if (!isLoggedIn && !spotifyAvailable) {
-      urlError = $_('search.status.loginRequired');
-      return;
-    }
-
     const url = urlInput.trim();
     if (!url) {
       urlError = '';
@@ -596,21 +599,31 @@
     urlError = '';
 
     try {
-      const parsed = await invoke<{ provider: Provider; type: string; id: string }>('parse_deezer_url', { url });
-      const isSpotify = parsed.provider === 'spotify';
-      
+      let parsed = await invoke<{ provider: Provider; type: string; id: string }>('parse_deezer_url', { url });
+      // SoundCloud links are paths; SoundCloud itself says what they point at.
+      if (parsed.provider === 'soundcloud') {
+        const resolved = await invoke<{ type: string; id: string }>('resolve_soundcloud_url', { url: parsed.id });
+        parsed = { provider: 'soundcloud', type: resolved.type, id: resolved.id };
+      }
+      const provider = parsed.provider;
+      if (provider === 'deezer' && !isLoggedIn) {
+        urlError = $_('search.status.loginRequired');
+        return;
+      }
+      if (provider === 'spotify' && !spotifyAvailable) {
+        urlError = $_('search.source.spotifyRequired');
+        return;
+      }
+
       switch (parsed.type) {
         case 'track':
-          const track = await invoke<Track>(isSpotify ? 'get_spotify_track' : 'get_track_by_id', { trackId: parsed.id });
+          const track = await invoke<Track>(catalogCommand(provider, 'track'), { trackId: parsed.id });
           await downloadTrack(track);
           urlInput = '';
           break;
           
         case 'album':
-          const albumTracks = await invoke<Track[]>(
-            isSpotify ? 'get_spotify_album_tracks' : 'get_album_tracks',
-            { albumId: parsed.id }
-          );
+          const albumTracks = await invoke<Track[]>(catalogCommand(provider, 'albumTracks'), { albumId: parsed.id });
           for (const track of albumTracks) {
             await downloadQueueManager.addToQueue(track);
           }
@@ -618,10 +631,7 @@
           break;
           
         case 'playlist':
-          const playlistTracks = await invoke<Track[]>(
-            isSpotify ? 'get_spotify_playlist_tracks' : 'get_playlist_tracks',
-            { playlistId: parsed.id }
-          );
+          const playlistTracks = await invoke<Track[]>(catalogCommand(provider, 'playlistTracks'), { playlistId: parsed.id });
           for (const track of playlistTracks) {
             await downloadQueueManager.addToQueue(track);
           }
@@ -629,11 +639,26 @@
           break;
           
         case 'artist':
+          if (provider === 'soundcloud') {
+            // A SoundCloud profile link queues the user's uploads.
+            const uploads = await invoke<Track[]>(catalogCommand(provider, 'albumTracks'), {
+              albumId: soundcloudUserTracksId(parsed.id)
+            });
+            if (uploads.length === 0) {
+              urlError = $_('search.album.noTracks');
+              break;
+            }
+            if (!confirm($_('search.artist.queueTracksConfirm', { values: { count: uploads.length } }))) {
+              break;
+            }
+            for (const track of uploads) {
+              await downloadQueueManager.addToQueue(track);
+            }
+            urlInput = '';
+            break;
+          }
           // For artists, we'll get their albums and download all tracks
-          const artistAlbums = await invoke<AlbumResult[]>(
-            isSpotify ? 'get_spotify_artist_albums' : 'get_artist_albums',
-            { artistId: parsed.id }
-          );
+          const artistAlbums = await invoke<AlbumResult[]>(catalogCommand(provider, 'artistAlbums'), { artistId: parsed.id });
           if (artistAlbums.length === 0) {
             urlError = $_('search.artist.noAlbums');
             break;
@@ -642,10 +667,7 @@
             break;
           }
           for (const album of artistAlbums) {
-            const tracks = await invoke<Track[]>(
-              isSpotify ? 'get_spotify_album_tracks' : 'get_album_tracks',
-              { albumId: String(album.id) }
-            );
+            const tracks = await invoke<Track[]>(catalogCommand(provider, 'albumTracks'), { albumId: String(album.id) });
             for (const track of tracks) {
               await downloadQueueManager.addToQueue(track);
             }
@@ -765,12 +787,18 @@
           class:active={source === 'spotify'}
           onclick={() => switchSource('spotify')}
         >{$_('search.source.spotify')}</button>
+        <button
+          class="source-btn"
+          class:active={source === 'soundcloud'}
+          onclick={() => switchSource('soundcloud')}
+        >{$_('search.source.soundcloud')}</button>
       </div>
       <div class="search-tabs">
         <button class="tab-btn" class:active={searchType === 'tracks'} onclick={() => switchSearchType('tracks')}>{$_('search.tabs.tracks')}</button>
         <button class="tab-btn" class:active={searchType === 'albums'} onclick={() => switchSearchType('albums')}>{$_('search.tabs.albums')}</button>
         <button class="tab-btn" class:active={searchType === 'artists'} onclick={() => switchSearchType('artists')}>{$_('search.tabs.artists')}</button>
         <button class="tab-btn" class:active={searchType === 'playlists'} onclick={() => switchSearchType('playlists')}>{$_('search.tabs.playlists')}</button>
+        {#if source !== 'soundcloud'}
         <span class="tab-divider" aria-hidden="true"></span>
         <button class="tab-btn" class:active={searchType === 'loved'} onclick={() => switchSearchType('loved')}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -779,6 +807,7 @@
           {$_('search.tabs.loved')}
         </button>
         <button class="tab-btn" class:active={searchType === 'myPlaylists'} onclick={() => switchSearchType('myPlaylists')}>{$_('search.tabs.myPlaylists')}</button>
+        {/if}
       </div>
       {#if !isLibraryType(searchType)}
       <div class="search-bar-container">
@@ -830,7 +859,7 @@
             type="url" 
             bind:value={urlInput}
             onkeydown={(e) => e.key === 'Enter' && handleUrlInput()}
-            placeholder="Paste a Deezer or Spotify track, album, playlist, or artist URL..."
+            placeholder="Paste a Deezer, Spotify or SoundCloud track, album, playlist, or artist URL..."
             disabled={parsingUrl}
             class:url-error={urlError}
           />

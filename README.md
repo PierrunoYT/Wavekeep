@@ -6,7 +6,7 @@
 
 > Wavekeep was previously called **Deezy**. Updating keeps your settings, download history, themes and saved logins (the startup warning shows once more); see [Upgrading from Deezy](#upgrading-from-deezy).
 
-A modern desktop Deezer and Spotify downloader. Search for tracks, albums, artists, and playlists, paste music URLs for direct download, and save audio with full metadata and cover art.
+A modern desktop Deezer, Spotify and SoundCloud downloader. Search for tracks, albums, artists, and playlists, paste music URLs for direct download, and save audio with full metadata and cover art.
 
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/dvuWBeXSf3)
 [![Release](https://img.shields.io/github/v/release/PierrunoYT/Wavekeep?label=latest)](https://github.com/PierrunoYT/Wavekeep/releases/latest)
@@ -33,16 +33,17 @@ A modern desktop Deezer and Spotify downloader. Search for tracks, albums, artis
 
 ## Features
 
-- **Search** – Find tracks, albums, artists, and playlists on Deezer or Spotify with debounced search
+- **Search** – Find tracks, albums, artists, and playlists on Deezer, Spotify or SoundCloud with debounced search
 - **Spotify source** – Download through librespot with full metadata and cover art; at each bitrate OGG Vorbis is preferred over MP3; FLAC is only requested for the Lossless setting, and if a track has none of the usual formats, whatever Spotify offers (such as AAC) is used
-- **URL download** – Paste full `deezer.com` or `open.spotify.com` track, album, artist, or playlist URLs to add their content to the queue
+- **SoundCloud source** – Search and download from SoundCloud without an account; the best stream SoundCloud serves unencrypted is saved (today usually AAC 160 kbps as `.m4a`, or MP3 128) with title, artist, date and artwork. Tracks SoundCloud only streams DRM-protected (common for major-label releases) or as a 30-second preview are not downloaded
+- **URL download** – Paste full `deezer.com`, `open.spotify.com` or `soundcloud.com` track, album, artist, or playlist URLs to add their content to the queue
 - **Audio preview** – Play 30-second Deezer previews before downloading
 - **Smart queue** – 1 to 10 simultaneous downloads (3 by default) with drag-and-drop reordering, pause/resume, and retry
 - **Your library** – Open your Loved Tracks and your own playlists, including private ones, next to the search tabs
 - **Album & playlist download** – Download all tracks with one click, or open an album or playlist to pick individual tracks
 - **Skip existing files** – Tracks whose audio file is already at the destination are skipped, even after clearing history
 - **Download pacing** – Optional pause between downloads and a total speed limit, including presets that match playback speed
-- **Quality options** – Deezer MP3 128, MP3 320, or FLAC; Spotify 96/160/320 kbps or lossless FLAC, with format fallback
+- **Quality options** – Deezer MP3 128, MP3 320, or FLAC; Spotify 96/160/320 kbps or lossless FLAC, with format fallback; SoundCloud always takes its best unencrypted stream
 - **Full metadata** – Title, artist, album, year, track and disc number, and cover art embedded; Deezer downloads also fill the album-artist tag (with the track's main artist), which Spotify downloads do not
 - **Folder structure** – Organize downloads as Flat, Artist/Track, Artist/Album/Track, Album/Track, or with a custom template
 - **Tag editor** – Edit metadata and cover art on any local MP3, FLAC, OGG, or M4A file (including Spotify downloads); files with an unreadable tag are reported and left untouched instead of being overwritten
@@ -115,13 +116,17 @@ Wavekeep normally uses librespot's shared Client ID. Because every librespot ins
 
 Track metadata, downloads, Loved Tracks and the tracks of a playlist or album go through the AP session independently of Web API search quotas, but search itself (and playlist search and your playlist list, which have no fallback) uses the Web API and its quota. A Pathfinder search fallback exists for rate-limited track, album, and artist searches, but Spotify currently refuses it, so a custom Client ID is the reliable fix for `429` errors.
 
+## SoundCloud
+
+Choose **SoundCloud** as the music source in Search; no account or setting is needed. Wavekeep uses the same anonymous access as the soundcloud.com web player (it reads the public client ID from soundcloud.com, or from `WAVEKEEP_SOUNDCLOUD_CLIENT_ID` if set). Opening an artist shows **All tracks** (their uploads, up to 500) followed by their albums and playlists; pasting a profile link queues their uploads after asking. There are no Loved Tracks or My Playlists tabs for SoundCloud, no previews, and no quality setting: the best stream SoundCloud serves without encryption is downloaded. Tracks SoundCloud only streams DRM-protected (many major-label releases, for every listener) and tracks that only have a 30-second preview (Go+ or region-restricted) fail with a message saying so; Wavekeep does not decrypt them.
+
 ---
 
 ## Usage
 
 1. **Setup** – For Deezer, paste your ARL token and click **Save & Login**; for Spotify, use **Connect Spotify**. Choose a download folder and source-specific quality
-2. **Search** – Switch to Search (Ctrl+1), choose Deezer or Spotify, type a query, and press Enter. The **Loved Tracks** and **My Playlists** tabs list your own library
-3. **Paste URLs** – Paste a full `deezer.com` or `open.spotify.com` track, album, artist, or playlist URL to add its content to the queue
+2. **Search** – Switch to Search (Ctrl+1), choose Deezer, Spotify or SoundCloud, type a query, and press Enter. The **Loved Tracks** and **My Playlists** tabs list your own library
+3. **Paste URLs** – Paste a full `deezer.com`, `open.spotify.com` or `soundcloud.com` track, album, artist, or playlist URL to add its content to the queue
 4. **Preview** – Click ▶ to preview a Deezer track; Space bar to play/pause
 5. **Download** – Click the download button on a track, or **Download All** on an album or playlist. Click an album or playlist title, including albums in an artist's discography, to see its tracks
 6. **Manage Queue** – Drag to reorder, pause/resume, or remove pending downloads (Ctrl+2)

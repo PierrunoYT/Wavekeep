@@ -128,8 +128,19 @@ pub async fn parse_deezer_url(url: String) -> Result<Value, String> {
         }));
     }
 
+    if host == "soundcloud.com" || host.ends_with(".soundcloud.com") {
+        // SoundCloud links are paths (`/artist/track`, `/artist/sets/name`),
+        // not IDs; `resolve_soundcloud_url` asks SoundCloud what they are.
+        let url = crate::soundcloud::canonical_url(trimmed).ok_or("Invalid SoundCloud URL")?;
+        return Ok(serde_json::json!({
+            "provider": "soundcloud",
+            "type": "url",
+            "id": url
+        }));
+    }
+
     if host != "deezer.com" && host != "www.deezer.com" {
-        return Err("Invalid music URL: host must be deezer.com or open.spotify.com".to_string());
+        return Err("Invalid music URL: host must be deezer.com, open.spotify.com or soundcloud.com".to_string());
     }
 
     let (content_type, id) = match segments.as_slice() {
@@ -212,6 +223,20 @@ mod tests {
         assert_eq!(parsed["provider"], "deezer");
         assert_eq!(parsed["type"], "album");
         assert_eq!(parsed["id"], "302127");
+    }
+
+    #[tokio::test]
+    async fn passes_soundcloud_links_on_without_their_query() {
+        let parsed = parse_deezer_url(
+            "https://soundcloud.com/flume/sets/skin?si=abc&utm_source=x".to_string(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(parsed["provider"], "soundcloud");
+        assert_eq!(parsed["type"], "url");
+        assert_eq!(parsed["id"], "https://soundcloud.com/flume/sets/skin");
+        assert!(parse_deezer_url("https://soundcloud.com/".to_string()).await.is_err());
+        assert!(parse_deezer_url("https://on.soundcloud.com/abc".to_string()).await.is_err());
     }
 
     #[tokio::test]

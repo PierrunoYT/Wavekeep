@@ -37,10 +37,12 @@
     },
     "artist": {
       "back": "Back",
+      "allTracks": "All tracks",
       "discography": "Discography",
       "loadingDiscography": "Loading discography...",
       "noAlbums": "No albums found for this artist.",
       "queueConfirm": "This artist has {count} albums. Add all their tracks to the download queue?",
+      "queueTracksConfirm": "This artist has {count} tracks. Add them all to the download queue?",
       "browseDiscography": "Browse {artist}'s discography"
     },
     "track": {
@@ -82,6 +84,7 @@
       "label": "Music source",
       "deezer": "Deezer",
       "spotify": "Spotify",
+      "soundcloud": "SoundCloud",
       "spotifyRequired": "Connect your Spotify account in Settings to search Spotify."
     }
   },
@@ -357,7 +360,7 @@
     },
     "warning": {
       "title": "Before you continue",
-      "intro": "Wavekeep is an unofficial tool and is not affiliated with Deezer or Spotify. You use it at your own risk. Please read this first.",
+      "intro": "Wavekeep is an unofficial tool and is not affiliated with Deezer, Spotify or SoundCloud. You use it at your own risk. Please read this first.",
       "dontShow": "Don't show this again",
       "understand": "I understand",
       "moreInfo": "More info & FAQ"
@@ -365,7 +368,7 @@
     "items": {
       "legal": {
         "title": "Personal use only",
-        "text": "Downloading from Deezer or Spotify may violate their terms of service and copyright law in your country. Only download music you are allowed to keep, and do not share the files."
+        "text": "Downloading from Deezer, Spotify or SoundCloud may violate their terms of service and copyright law in your country. Only download music you are allowed to keep, and do not share the files."
       },
       "account": {
         "title": "Your accounts can be banned",
@@ -439,7 +442,7 @@
       },
       "privacy": {
         "q": "What does Wavekeep collect or send?",
-        "a": "Nothing goes to the developer: there are no analytics, telemetry, crash reports or update checks. Wavekeep only connects to Deezer and Spotify (and their image and audio servers) to log in, search and download. On your computer it keeps your settings, including your last 20 searches unless search history is off, your download history, custom themes and the diagnostic log. Logins are kept in your system's credential store; the Deezer ARL only goes into the settings file if that store is unavailable. You can clear the download history in Downloads, clear or turn off search history in Settings, and delete the log here in Info & FAQ."
+        "a": "Nothing goes to the developer: there are no analytics, telemetry, crash reports or update checks. Wavekeep only connects to Deezer, Spotify and SoundCloud (and their image and audio servers) to log in, search and download. On your computer it keeps your settings, including your last 20 searches unless search history is off, your download history, custom themes and the diagnostic log. Logins are kept in your system's credential store; the Deezer ARL only goes into the settings file if that store is unavailable. You can clear the download history in Downloads, clear or turn off search history in Settings, and delete the log here in Info & FAQ."
       }
     }
   },

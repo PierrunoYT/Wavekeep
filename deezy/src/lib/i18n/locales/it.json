@@ -37,10 +37,12 @@
         },
         "artist": {
             "back": "Indietro",
+            "allTracks": "Tutti i brani",
             "discography": "Discografia",
             "loadingDiscography": "Caricamento discografia...",
             "noAlbums": "Nessun album trovato per questo artista.",
             "queueConfirm": "Questo artista ha {count} album. Aggiungere tutti i brani alla coda di download?",
+            "queueTracksConfirm": "Questo artista ha {count} brani. Aggiungerli tutti alla coda di download?",
             "browseDiscography": "Sfoglia la discografia di {artist}"
         },
         "track": {
@@ -82,6 +84,7 @@
             "label": "Sorgente musicale",
             "deezer": "Deezer",
             "spotify": "Spotify",
+            "soundcloud": "SoundCloud",
             "spotifyRequired": "Collega il tuo account Spotify nelle Impostazioni per cercare su Spotify."
         }
     },
@@ -357,7 +360,7 @@
         },
         "warning": {
             "title": "Prima di continuare",
-            "intro": "Wavekeep è uno strumento non ufficiale e non è affiliato a Deezer né a Spotify. Lo usi a tuo rischio. Leggi prima questo avviso.",
+            "intro": "Wavekeep è uno strumento non ufficiale e non è affiliato a Deezer, Spotify né SoundCloud. Lo usi a tuo rischio. Leggi prima questo avviso.",
             "dontShow": "Non mostrare più",
             "understand": "Ho capito",
             "moreInfo": "Info e FAQ"
@@ -365,7 +368,7 @@
         "items": {
             "legal": {
                 "title": "Solo per uso personale",
-                "text": "Scaricare da Deezer o Spotify può violare i loro termini di servizio e le leggi sul diritto d'autore del tuo paese. Scarica solo musica che puoi conservare e non condividere i file."
+                "text": "Scaricare da Deezer, Spotify o SoundCloud può violare i loro termini di servizio e le leggi sul diritto d'autore del tuo paese. Scarica solo musica che puoi conservare e non condividere i file."
             },
             "account": {
                 "title": "I tuoi account possono essere bannati",
@@ -439,7 +442,7 @@
             },
             "privacy": {
                 "q": "Cosa raccoglie o invia Wavekeep?",
-                "a": "Allo sviluppatore non arriva nulla: niente analisi, telemetria, segnalazioni di crash o controllo degli aggiornamenti. Wavekeep si collega solo a Deezer e Spotify (e ai loro server di immagini e audio) per accedere, cercare e scaricare. Sul tuo computer conserva le impostazioni, comprese le ultime 20 ricerche se la cronologia delle ricerche è attiva, la cronologia dei download, i temi personalizzati e il registro diagnostico. Gli accessi sono conservati nell'archivio delle credenziali del sistema; l'ARL di Deezer finisce nel file delle impostazioni solo se l'archivio non è disponibile. Puoi cancellare la cronologia dei download in Download, cancellare o disattivare la cronologia delle ricerche nelle Impostazioni ed eliminare il registro qui, in Info e FAQ."
+                "a": "Allo sviluppatore non arriva nulla: niente analisi, telemetria, segnalazioni di crash o controllo degli aggiornamenti. Wavekeep si collega solo a Deezer, Spotify e SoundCloud (e ai loro server di immagini e audio) per accedere, cercare e scaricare. Sul tuo computer conserva le impostazioni, comprese le ultime 20 ricerche se la cronologia delle ricerche è attiva, la cronologia dei download, i temi personalizzati e il registro diagnostico. Gli accessi sono conservati nell'archivio delle credenziali del sistema; l'ARL di Deezer finisce nel file delle impostazioni solo se l'archivio non è disponibile. Puoi cancellare la cronologia dei download in Download, cancellare o disattivare la cronologia delle ricerche nelle Impostazioni ed eliminare il registro qui, in Info e FAQ."
             }
         }
     },

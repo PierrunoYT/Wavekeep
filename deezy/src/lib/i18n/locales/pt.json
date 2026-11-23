@@ -37,10 +37,12 @@
         },
         "artist": {
             "back": "Voltar",
+            "allTracks": "Todas as faixas",
             "discography": "Discografia",
             "loadingDiscography": "A carregar discografia...",
             "noAlbums": "Nenhum álbum encontrado para este artista.",
             "queueConfirm": "Este artista tem {count} álbuns. Adicionar todas as faixas à fila de transferências?",
+            "queueTracksConfirm": "Este artista tem {count} faixas. Adicionar todas à fila de transferências?",
             "browseDiscography": "Explorar discografia de {artist}"
         },
         "track": {
@@ -82,6 +84,7 @@
             "label": "Fonte de música",
             "deezer": "Deezer",
             "spotify": "Spotify",
+            "soundcloud": "SoundCloud",
             "spotifyRequired": "Conecte a sua conta Spotify nas Definições para pesquisar no Spotify."
         }
     },
@@ -357,7 +360,7 @@
         },
         "warning": {
             "title": "Antes de continuares",
-            "intro": "O Wavekeep é uma ferramenta não oficial e não está associado ao Deezer nem ao Spotify. Usas por tua conta e risco. Lê isto primeiro.",
+            "intro": "O Wavekeep é uma ferramenta não oficial e não está associado ao Deezer, ao Spotify nem ao SoundCloud. Usas por tua conta e risco. Lê isto primeiro.",
             "dontShow": "Não mostrar novamente",
             "understand": "Compreendo",
             "moreInfo": "Info e FAQ"
@@ -365,7 +368,7 @@
         "items": {
             "legal": {
                 "title": "Apenas para uso pessoal",
-                "text": "Transferir do Deezer ou do Spotify pode violar os respetivos termos de serviço e a lei dos direitos de autor do teu país. Transfere apenas música que possas guardar e não partilhes os ficheiros."
+                "text": "Transferir do Deezer, do Spotify ou do SoundCloud pode violar os respetivos termos de serviço e a lei dos direitos de autor do teu país. Transfere apenas música que possas guardar e não partilhes os ficheiros."
             },
             "account": {
                 "title": "As tuas contas podem ser banidas",
@@ -439,7 +442,7 @@
             },
             "privacy": {
                 "q": "O que é que o Wavekeep recolhe ou envia?",
-                "a": "Nada chega ao programador: não há análises, telemetria, relatórios de erros nem verificação de atualizações. O Wavekeep só se liga ao Deezer e ao Spotify (e aos respetivos servidores de imagens e áudio) para iniciar sessão, pesquisar e transferir. No teu computador guarda as definições, incluindo as tuas últimas 20 pesquisas se o histórico de pesquisa estiver ativo, o histórico de transferências, os temas personalizados e o registo de diagnóstico. Os inícios de sessão ficam no cofre de credenciais do sistema; o ARL do Deezer só vai para o ficheiro de definições se esse cofre não estiver disponível. Podes limpar o histórico de transferências em Transferências, limpar ou desativar o histórico de pesquisa nas Definições e eliminar o registo aqui, em Info e FAQ."
+                "a": "Nada chega ao programador: não há análises, telemetria, relatórios de erros nem verificação de atualizações. O Wavekeep só se liga ao Deezer, ao Spotify e ao SoundCloud (e aos respetivos servidores de imagens e áudio) para iniciar sessão, pesquisar e transferir. No teu computador guarda as definições, incluindo as tuas últimas 20 pesquisas se o histórico de pesquisa estiver ativo, o histórico de transferências, os temas personalizados e o registo de diagnóstico. Os inícios de sessão ficam no cofre de credenciais do sistema; o ARL do Deezer só vai para o ficheiro de definições se esse cofre não estiver disponível. Podes limpar o histórico de transferências em Transferências, limpar ou desativar o histórico de pesquisa nas Definições e eliminar o registo aqui, em Info e FAQ."
             }
         }
     },

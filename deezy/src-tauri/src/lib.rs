@@ -4,6 +4,7 @@ mod logging;
 mod migration;
 mod paths;
 mod settings;
+mod soundcloud;
 mod spotify;
 mod themes;
 mod tray;
@@ -158,6 +159,15 @@ pub fn run() {
             commands::get_spotify_playlist_tracks,
             commands::get_spotify_loved_tracks,
             commands::get_spotify_user_playlists,
+            commands::search_soundcloud_tracks,
+            commands::search_soundcloud_albums,
+            commands::search_soundcloud_artists,
+            commands::search_soundcloud_playlists,
+            commands::get_soundcloud_track,
+            commands::get_soundcloud_album_tracks,
+            commands::get_soundcloud_playlist_tracks,
+            commands::get_soundcloud_artist_albums,
+            commands::resolve_soundcloud_url,
             commands::download_track,
             commands::cancel_download,
             commands::get_settings,

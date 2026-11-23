@@ -99,6 +99,10 @@
       SPOTIFY_AAC: 'Spotify AAC'
     };
     if (spotifyLabels[value]) return spotifyLabels[value];
+    if (value === 'SOUNDCLOUD') return 'SoundCloud';
+    // SOUNDCLOUD_AAC_160 -> SoundCloud AAC 160 kbps
+    const soundcloud = /^SOUNDCLOUD_([A-Z0-9]+)_(\d+)$/.exec(value);
+    if (soundcloud) return `SoundCloud ${soundcloud[1]} ${soundcloud[2]} kbps`;
     return value.replace('MP3_', 'MP3 ').replace('_', ' ');
   }
 

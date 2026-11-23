@@ -20,7 +20,7 @@ If you do not accept this, do not use Wavekeep.
 
 ### What is Wavekeep?
 
-A desktop app (Windows installers are published; macOS and Linux can be built from source) that searches Deezer and Spotify and downloads tracks, albums and playlists with tags and cover art. It was called Deezy before version 0.3.0.
+A desktop app (Windows installers are published; macOS and Linux can be built from source) that searches Deezer, Spotify and SoundCloud and downloads tracks, albums and playlists with tags and cover art. It was called Deezy before version 0.3.0.
 
 ### How do I get my Deezer ARL token?
 
@@ -36,17 +36,21 @@ Treat the ARL like a password. Do not share it, post it in screenshots, or inclu
 
 Yes. Connect Spotify in Settings (a browser login on Spotify's own page), then choose Spotify as the music source. You do not need a Deezer account or ARL. You can also paste a full `open.spotify.com` track, album, artist or playlist link, or a `spotify:` URI, into the music URL field.
 
+### Do I need an account for SoundCloud?
+
+No. Choose SoundCloud as the music source in Search, or paste a `soundcloud.com` link. Wavekeep uses the same anonymous access as the soundcloud.com web player. Tracks that SoundCloud only streams DRM-protected (many major-label releases) or only as a 30-second preview (Go+ or region-restricted) cannot be downloaded; Wavekeep says so instead of saving anything.
+
 ### Does Spotify work with a Free account?
 
 No, the Spotify source needs **Spotify Premium**. The library Wavekeep uses to talk to Spotify (librespot) closes the whole program as soon as it connects to a Free account, and nothing appears in the log. In 0.3.0 Wavekeep therefore just closes right after the Spotify login. The next version checks your account type first and shows "Spotify Premium is required" instead. Deleting saved credentials or app data does not help; only a Premium account does. Deezer still works with a Free account.
 
 ### Can I paste a link to download?
 
-Yes. The **music URL** field in Search accepts `deezer.com` and `open.spotify.com` links:
+Yes. The **music URL** field in Search accepts `deezer.com`, `open.spotify.com` and `soundcloud.com` links:
 
 - Track links add one track.
 - Album and playlist links add all their tracks.
-- Artist links add the tracks of every album returned for that artist, after asking you to confirm the number of albums.
+- Artist links add the tracks of every album returned for that artist, after asking you to confirm the number of albums. SoundCloud profile links add the user's uploads (up to 500) after asking you to confirm the number of tracks.
 
 Deezer links must be full `http(s)://` links with a numeric ID, such as `https://www.deezer.com/track/123456`, optionally with a locale like `/en/`. Short links and other domains are not supported.
 
@@ -66,6 +70,8 @@ Deezer links must be full `http(s)://` links with a numeric ID, such as `https:/
 Free accounts are always limited to MP3 128 kbps, whatever you choose in Settings.
 
 **Spotify** (Premium only, see [Does Spotify work with a Free account?](#does-spotify-work-with-a-free-account)): Settings offers Normal (96 kbps), High (160 kbps), Very high (320 kbps) and Lossless (FLAC). Each setting starts at its own bitrate and falls back to the others when Spotify does not supply it. At each bitrate OGG Vorbis is preferred over MP3. FLAC is only requested for Lossless; if a track offers none of the usual formats, Wavekeep takes whatever Spotify lists, such as AAC. Availability varies by track and region.
+
+**SoundCloud**: there is no quality setting. Wavekeep downloads the best stream SoundCloud serves without encryption, today usually AAC 160 kbps (saved as `.m4a`), sometimes MP3 128 kbps. DRM-protected streams (Go+ quality and many major-label releases) are never used.
 
 ### Why did my Deezer download fall back to a lower quality?
 
@@ -118,7 +124,7 @@ Yes. See [Read this first](#read-this-first). Wavekeep never asks for your Deeze
 
 ### What does Wavekeep collect or send?
 
-**Nothing goes to the developer.** There is no analytics, telemetry, crash reporting, update check or Wavekeep server. Wavekeep only talks to Deezer and Spotify (and their image and audio servers) to log in, search, preview and download. Your Spotify login happens in your browser on Spotify's own page.
+**Nothing goes to the developer.** There is no analytics, telemetry, crash reporting, update check or Wavekeep server. Wavekeep only talks to Deezer, Spotify and SoundCloud (and their image and audio servers) to log in, search, preview and download. Your Spotify login happens in your browser on Spotify's own page.
 
 | Stored on your computer | Where | How to remove it |
 |---|---|---|
