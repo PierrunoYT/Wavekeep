@@ -112,114 +112,85 @@ No. It removes inactive history records, not audio files. Active and queued down
 
 ## 🔒 Privacy & security
 
-### Can my account get banned? Is it safe to use my account?
+### Can my account get banned?
 
-See [Read this first](#read-this-first): yes, it can, and you use Wavekeep at your own risk. Wavekeep never asks for your Deezer or Spotify password, but an ARL is a session credential and protecting it matters as much as protecting a password.
+Yes. See [Read this first](#read-this-first). Wavekeep never asks for your Deezer or Spotify password, but your ARL is a session credential: protect it like a password.
 
 ### What does Wavekeep collect or send?
 
-**Nothing goes to the developer.** The source has no analytics, telemetry, crash reporting, update checks or Wavekeep-operated server.
+**Nothing goes to the developer.** There is no analytics, telemetry, crash reporting, update check or Wavekeep server. Wavekeep only talks to Deezer and Spotify (and their image and audio servers) to log in, search, preview and download. Your Spotify login happens in your browser on Spotify's own page.
 
-**What is sent, and where:** Wavekeep only talks to Deezer and Spotify, and to their image and audio servers, to log in, search, play previews and download. Your Spotify login happens in your browser on Spotify's own page.
-
-**What is stored on your computer:**
-
-| Data | Where | How to remove it |
+| Stored on your computer | Where | How to remove it |
 |---|---|---|
-| Settings, including your last 20 searches | `settings.json` in the app-data folder | Clear or turn off search history in Settings |
-| Download history | `download_history.json` in the app-data folder | Clear it in Downloads |
-| Custom themes | `themes/` in the app-data folder | Delete them in Settings |
-| Deezer ARL and Spotify logins | Your system's credential store (the ARL goes into `settings.json` only if that store is unavailable) | Log out, or disconnect Spotify, in Settings |
+| Settings, incl. your last 20 searches | `settings.json` in the app-data folder | Clear or turn off search history in Settings |
+| Download history | `download_history.json` | Clear it in Downloads |
+| Custom themes | `themes/` | Delete them in Settings |
+| Deezer ARL and Spotify logins | OS credential store (the ARL goes into `settings.json` only if that store is unavailable) | Log out or disconnect in Settings |
 | Diagnostic log | `wavekeep-debug.log` in the logs folder | **Delete log** in Info & FAQ |
-| Your music | The download folder you chose | Delete the files yourself; clearing history never touches them |
+| Your music | Your download folder | Delete the files yourself; clearing history never touches them |
 
-### How is my ARL stored?
+### How are my logins stored?
 
-- **In the OS credential store** (Windows Credential Manager, macOS Keychain, Linux Secret Service) when it is available.
-- **Plaintext fallback:** if no credential is stored yet and the credential store is unavailable, the ARL is kept in `settings.json` so the app still works (owner-only permissions on Unix). It moves into the credential store, and out of the file, once the store works again. Set `WAVEKEEP_NO_KEYRING=1` (`true` and `yes` also work; the older `DEEZY_NO_KEYRING` too) before starting to keep the ARL in `settings.json` on purpose.
-- **Never given back to the interface:** settings returned to the window have an empty ARL field, and only a verified login can change the stored ARL. A new ARL is checked with Deezer before it replaces the old one, and a failed save restores the previous one.
-- **Used only for Deezer:** requests go to Deezer's HTTPS hosts only (TLS 1.2 or newer, redirects included) and never to a Wavekeep server. While you paste it, it passes through the app's window and a local connection to the backend.
-- **Open source:** see `src-tauri/src/settings.rs`, `commands/account.rs`, `commands/settings.rs` and `deezer/`.
-
-### How is my Spotify login stored?
-
-Spotify uses a browser login, not an ARL or your Spotify password. The tokens are normally kept in the OS credential store under `com.pierr.wavekeep` / `spotify_oauth` (and `spotify_oauth_web` for your own Client ID), separately from the ARL. If the credential store is unavailable, the current session still works but you must log in again after a restart. **Disconnect** in Settings removes the stored token. Changing the Spotify Client ID disconnects you, because tokens belong to the Client ID that issued them.
+- **Deezer ARL:** in the OS credential store (Windows Credential Manager, macOS Keychain, Linux Secret Service). If that is unavailable and nothing is stored yet, it falls back to `settings.json` and moves into the credential store once it works. `WAVEKEEP_NO_KEYRING=1` forces the file. The window never gets the ARL back, a new ARL is checked with Deezer before it replaces the old one, and it is only sent to Deezer over HTTPS.
+- **Spotify:** a browser login, not your password. The tokens go to the credential store, separately from the ARL; without it you log in again after a restart. **Disconnect** in Settings removes them.
 
 ### Does Wavekeep keep a log? What is in it?
 
-Yes, a diagnostic log that never leaves your computer unless you share it yourself. It lives in the logs folder: `%LOCALAPPDATA%\com.pierr.wavekeep\logs` on Windows, `~/Library/Logs/com.pierr.wavekeep` on macOS, and `~/.local/share/com.pierr.wavekeep/logs` (or `$XDG_DATA_HOME/com.pierr.wavekeep/logs`) on Linux. The system does not clean that folder up on its own.
+Yes, a diagnostic log that never leaves your computer unless you share it. It is in `%LOCALAPPDATA%\com.pierr.wavekeep\logs` (Windows), `~/Library/Logs/com.pierr.wavekeep` (macOS) or `~/.local/share/com.pierr.wavekeep/logs` (Linux).
 
-- **What it records:** app start and version, the move from Deezy, whether Deezer and Spotify logins worked (account type only), quality fallbacks, the start and result of every download (and each step of Spotify downloads), Spotify rate limits, and errors, with track IDs.
-- **Track details:** track names, artists and file paths are included by default. Turn off **Track Details in Log** in Settings and they are written as `[hidden]`; IDs, statuses and errors are still logged.
-- **Never in it:** passwords, your ARL, login tokens, and what you search for. As a safety net, every line is cleaned before it is saved: your home folder appears as `~`, web addresses lose their query part, and long token-like strings become `[redacted]`.
-- **Size and deletion:** at 1 MB the log is renamed to `wavekeep-debug.old.log` and a new one starts. **Delete log** in Info & FAQ removes both files, and you can delete them by hand.
+- **Records:** start and version, the move from Deezy, login results (account type only), quality fallbacks, each download's start and result, Spotify rate limits and errors, with track IDs.
+- **Track names, artists and file paths** are included unless you turn off **Track Details in Log** in Settings; then they read `[hidden]`.
+- **Never:** passwords, your ARL, login tokens or your searches. Your home folder shows as `~`, web addresses lose their query part, and long token-like strings become `[redacted]`.
+- **Size:** at 1 MB it rotates to `wavekeep-debug.old.log`. **Delete log** in Info & FAQ removes both files.
 
 ### What local files can Wavekeep access?
 
-The Tag Editor can read or change only MP3, FLAC, OGG and M4A files and cover images you pick in Wavekeep's own file dialogs, plus audio files in your download folder. Before saving, it copies the file next to itself (a hidden `.wavekeep.bak` file) and puts the original back if the save fails. The download folder can only be changed through the folder dialog. Theme imports and history exports use native open and save dialogs. Settings, download history and custom themes live in Wavekeep's app-data folder.
+Only the audio files and cover images you pick in its own file dialogs, plus audio files in your download folder. The Tag Editor keeps a hidden `.wavekeep.bak` copy while saving and restores the file if the save fails. Settings, history and themes live in the app-data folder.
 
 ---
 
 ## 🛠️ Troubleshooting
 
-### My ARL expired or stopped working.
-
-Log into Deezer in your browser again, copy the current `arl` cookie and save it in Settings. Wavekeep retries a download once by itself when it sees an expired session; if that fails, update the ARL and log in again.
-
-### Spotify search is rate-limited, or my custom Client ID does not work.
-
-The default Client ID is shared by every librespot install, so its Web API search quota is often used up. Wavekeep then tries Spotify's Pathfinder search, but Spotify currently refuses it (`403 Client/request not allowed`), so **your own Client ID is the reliable fix**. Downloads and track metadata use a different connection and do not depend on that quota.
-
-1. In the Spotify Developer Dashboard, create an app and add `http://127.0.0.1:5588/login` as a redirect URI.
-2. Paste its Client ID into **Settings → Spotify Client ID** (it saves when the field loses focus; changing it while connected disconnects you).
-3. Reconnect. The browser login opens **twice**: once for downloads (which always use the default ID, because Spotify rejects track requests from other IDs) and once for your app (search and your playlists). Approve both.
-
-`WAVEKEEP_SPOTIFY_CLIENT_ID` (or the older `DEEZY_SPOTIFY_CLIENT_ID`) works as an override when the saved field is blank. A Client ID from a Spotify app in development mode may carry restrictions set on Spotify's side that Wavekeep cannot see.
-
-### The Spotify login window never finishes.
-
-The login waits 5 minutes and then gives up and frees its port (5588), so **Connect** works again. If it keeps failing, close other programs that might use port 5588 and try again.
-
 ### Downloads are stalling or not starting.
 
 - Check your internet connection.
-- Deezer: save a current ARL and try MP3 128 kbps if higher quality is unavailable.
-- Spotify: disconnect and reconnect in Settings. A custom Client ID only affects search, not downloads.
-- Open **Info & FAQ** and press **Copy recent log**: it records what each download did and the exact error (see [How do I report a problem?](#how-do-i-report-a-problem)).
-- Pause and resume the download, or retry it from the download history after an error.
-- Fully exit Wavekeep from the tray before restarting it.
+- **Deezer:** save a current ARL, and try MP3 128 kbps if higher quality is unavailable.
+- **Spotify:** disconnect and reconnect in Settings.
+- Pause and resume the download, or retry it from the history.
+- Fully exit Wavekeep from the tray and start it again.
+- Press **Copy recent log** in Info & FAQ: it shows the exact error (see [How do I report a problem?](#how-do-i-report-a-problem)).
 
-Download history is saved: interrupted transfers come back paused after a restart and can be resumed by hand. Queued tracks that had not started are not saved, so add them again. A track can also be unavailable because of catalog or regional limits.
+Interrupted downloads come back paused after a restart; queued tracks that had not started are not saved. A track can also be unavailable in your region. Quitting through Wavekeep cancels downloads and cleans up (at most 30 seconds); after a crash an unfinished `.wavekeep.part` file may remain, and you can delete it.
 
-When you quit through Wavekeep, active downloads are cancelled and their partial files cleaned (this waits at most 30 seconds). A hard crash or a forced kill can leave an unfinished `.wavekeep.part` file in the download folder, which you can delete.
+### My ARL expired or stopped working.
 
-### A Deezer album or playlist fails while loading.
+Log into Deezer in your browser, copy the current `arl` cookie and save it in Settings. Wavekeep already retries once by itself when it sees an expired session.
 
-Wavekeep follows every Deezer API page to load the whole track list, and a failed later page is an error rather than a shorter list. Check your connection and try again. Lists are limited to 100,000 entries and 1,000 follow-up pages. Spotify catalog loading works differently and does not use these limits.
+### Spotify search is rate-limited, or my Client ID does not work.
 
-### A Deezer URL shows "Track not found" or does not work.
+The default Client ID is shared by every librespot install, so its search quota is often used up, and Spotify currently blocks the fallback search. **Your own Client ID is the fix:**
 
-Use a full `http://` or `https://` link from `deezer.com` with a numeric ID and one of `/track/`, `/album/`, `/artist/` or `/playlist/`. Short links are not supported. If a full link still fails, update your ARL and check that the content is available to your account and region.
+1. Create an app in the Spotify Developer Dashboard and add `http://127.0.0.1:5588/login` as a redirect URI.
+2. Paste its Client ID into **Settings → Spotify Client ID** (this disconnects you).
+3. Reconnect and approve **both** browser logins: one for downloads (always the default ID) and one for search and your playlists.
 
-### Album covers or audio previews do not load.
+Downloads do not depend on this quota. An app in Spotify's development mode can carry limits Wavekeep cannot see. `WAVEKEEP_SPOTIFY_CLIENT_ID` works as an override when the field is blank. If a login hangs, it gives up after 5 minutes and frees port 5588. Connecting also checks your account type through this quota; if it is used up, connecting fails with the rate-limit message until you set your own Client ID or try again later.
 
-Use the latest release and make sure your network, DNS filter, firewall or proxy allows HTTPS to the provider's hosts: `api.deezer.com` and `*.dzcdn.net` for Deezer, `api.spotify.com`, `*.scdn.co` and `*.spotifycdn.com` for Spotify.
+### A link, album or playlist does not load.
 
-### The app shows a blank or black screen on startup.
+Use a full `https://` link from `deezer.com` (`/track/`, `/album/`, `/artist/` or `/playlist/` with a numeric ID); short links are not supported. A failed page while loading is reported as an error instead of a shorter list, so check your connection and retry. If it still fails, update your ARL and check that the content is available in your region.
 
-Fully exit Wavekeep from the system tray and reopen it. If that does not help, install the latest release again. As a last resort, close Wavekeep and rename its app-data folder so it creates a clean configuration:
+### Covers or previews do not load.
 
-- **Windows:** `%APPDATA%\com.pierr.wavekeep`
-- **macOS:** `~/Library/Application Support/com.pierr.wavekeep`
-- **Linux:** `$XDG_DATA_HOME/com.pierr.wavekeep` or `~/.local/share/com.pierr.wavekeep`
+Update to the latest release and allow HTTPS to `api.deezer.com`, `*.dzcdn.net`, `api.spotify.com`, `*.scdn.co` and `*.spotifycdn.com` in your firewall, DNS filter or proxy.
 
-This removes local settings, download history and custom themes, and the ARL too if Wavekeep was using the plaintext fallback. Logins in the OS credential store are separate and may remain. On Linux the logs folder is inside this folder, so the log is reset as well.
+### The app shows a blank or black screen.
+
+Exit Wavekeep from the tray and reopen it, or reinstall the latest release. As a last resort, close it and rename its app-data folder (`%APPDATA%\com.pierr.wavekeep` on Windows, `~/Library/Application Support/com.pierr.wavekeep` on macOS, `~/.local/share/com.pierr.wavekeep` on Linux). That resets settings, history and themes (and the log on Linux); logins in the OS credential store stay.
 
 ### How do I report a problem?
 
-Open **Info & FAQ** in the sidebar, press **Copy recent log**, and paste it with a short description of what you did into a [GitHub issue](https://github.com/PierrunoYT/Wavekeep/issues) or the [Discord server](https://discord.gg/dvuWBeXSf3). **Open log folder** shows the whole file.
-
-The log only leaves your computer when you share it, and it never contains passwords, your ARL or login tokens. To keep track names and file paths out of it, turn off **Track Details in Log** in Settings, press **Delete log**, reproduce the problem, then copy. You can read the log before sharing; see [Does Wavekeep keep a log?](#does-wavekeep-keep-a-log-what-is-in-it) for what it contains.
+Open **Info & FAQ**, press **Copy recent log**, and paste it with a short description into a [GitHub issue](https://github.com/PierrunoYT/Wavekeep/issues) or the [Discord server](https://discord.gg/dvuWBeXSf3). **Open log folder** shows the whole file. The log never contains passwords, your ARL or login tokens, and you can read it before sharing; to leave out track names and paths, turn off **Track Details in Log**, press **Delete log**, reproduce the problem, then copy. See [Does Wavekeep keep a log?](#does-wavekeep-keep-a-log-what-is-in-it).
 
 ---
 

@@ -7,7 +7,7 @@
  * which case the notice is simply shown every time.
  */
 
-export const NOTICE_VERSION = 1;
+export const NOTICE_VERSION = 2;
 const STORAGE_KEY = 'wavekeep.startupNotice';
 
 /** Items in the startup warning; text lives under `info.items.<id>` in the locale files. */

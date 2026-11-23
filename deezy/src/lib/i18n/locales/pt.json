@@ -357,7 +357,7 @@
         },
         "warning": {
             "title": "Antes de continuares",
-            "intro": "O Wavekeep é uma ferramenta não oficial e não está associado ao Deezer nem ao Spotify. Lê isto primeiro.",
+            "intro": "O Wavekeep é uma ferramenta não oficial e não está associado ao Deezer nem ao Spotify. Usas por tua conta e risco. Lê isto primeiro.",
             "dontShow": "Não mostrar novamente",
             "understand": "Compreendo",
             "moreInfo": "Info e FAQ"
@@ -368,16 +368,16 @@
                 "text": "Transferir do Deezer ou do Spotify pode violar os respetivos termos de serviço e a lei dos direitos de autor do teu país. Transfere apenas música que possas guardar e não partilhes os ficheiros."
             },
             "account": {
-                "title": "As tuas contas estão em risco",
-                "text": "Os serviços podem restringir ou suspender contas em que detetem ferramentas de transferência. Considera usar uma conta secundária em vez da principal."
+                "title": "As tuas contas podem ser banidas",
+                "text": "O Deezer e o Spotify podem avisar, restringir, suspender ou banir, sem aviso, contas em que detetem ferramentas de transferência. Não uses uma conta que não possas dar-te ao luxo de perder; considera uma conta secundária."
             },
             "credentials": {
                 "title": "Protege o teu início de sessão",
                 "text": "O teu ARL do Deezer funciona como uma palavra-passe, por isso nunca o partilhes. O Spotify usa um início de sessão no navegador e o Wavekeep nunca vê a tua palavra-passe do Spotify."
             },
             "unofficial": {
-                "title": "Não oficial e sem suporte",
-                "text": "O Wavekeep depende de interfaces que o Deezer e o Spotify podem alterar ou bloquear a qualquer momento, pelo que as funcionalidades podem deixar de funcionar sem aviso."
+                "title": "Não oficial, por tua conta e risco",
+                "text": "O Wavekeep é fornecido sem garantia, e o programador não assume qualquer responsabilidade por contas banidas ou restringidas nem por quaisquer outras consequências de o usar. Além disso, depende de interfaces que o Deezer e o Spotify podem alterar ou bloquear a qualquer momento, pelo que as funcionalidades podem deixar de funcionar sem aviso."
             },
             "accounts": {
                 "title": "De que conta preciso?",
@@ -403,11 +403,11 @@
             },
             "legal": {
                 "q": "É legal usar o Wavekeep?",
-                "a": "Depende do teu país e do que fazes com os ficheiros. O Wavekeep não pode verificar isso por ti. Trata as transferências como cópias pessoais e respeita os termos dos serviços e a lei local dos direitos de autor."
+                "a": "Depende do teu país e do que fazes com os ficheiros. O Wavekeep não pode verificar isso por ti, e a responsabilidade é tua. Trata as transferências como cópias pessoais e respeita os termos dos serviços e a lei local dos direitos de autor."
             },
             "ban": {
                 "q": "A minha conta pode ser banida?",
-                "a": "É possível, porque a transferência automatizada pode provocar restrições. Usa uma conta secundária se a tua conta for importante e mantém as transferências moderadas e espaçadas com «Pausa entre transferências» e «Limite de velocidade de transferência» nas Definições."
+                "a": "Sim. A transferência automatizada viola os termos dos serviços e pode levar a que uma conta seja avisada, restringida, suspensa ou banida, sem aviso. Espaçar as transferências com «Pausa entre transferências» e «Limite de velocidade de transferência» nas Definições parece-se mais com uma audição normal, mas não elimina o risco. Uma conta secundária protege a principal. Usas o Wavekeep por tua conta e risco, e o programador não assume qualquer responsabilidade pelo que acontecer às tuas contas."
             },
             "arl": {
                 "q": "Como obtenho o meu ARL do Deezer?",

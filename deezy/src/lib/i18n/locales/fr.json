@@ -357,7 +357,7 @@
     },
     "warning": {
       "title": "Avant de continuer",
-      "intro": "Wavekeep est un outil non officiel, sans lien avec Deezer ni Spotify. Merci de lire ceci d'abord.",
+      "intro": "Wavekeep est un outil non officiel, sans lien avec Deezer ni Spotify. Vous l'utilisez à vos propres risques. Merci de lire ceci d'abord.",
       "dontShow": "Ne plus afficher",
       "understand": "J'ai compris",
       "moreInfo": "Infos et FAQ"
@@ -368,16 +368,16 @@
         "text": "Télécharger depuis Deezer ou Spotify peut enfreindre leurs conditions d'utilisation et le droit d'auteur de votre pays. Ne téléchargez que de la musique que vous avez le droit de conserver, et ne partagez pas les fichiers."
       },
       "account": {
-        "title": "Vos comptes sont en danger",
-        "text": "Les services peuvent restreindre ou suspendre les comptes qu'ils détectent utilisant des outils de téléchargement. Pensez à utiliser un compte secondaire plutôt que votre compte principal."
+        "title": "Vos comptes peuvent être bannis",
+        "text": "Deezer et Spotify peuvent avertir, restreindre, suspendre ou bannir, sans préavis, les comptes qu'ils détectent utilisant des outils de téléchargement. N'utilisez pas un compte que vous ne pouvez pas vous permettre de perdre ; pensez à un compte secondaire."
       },
       "credentials": {
         "title": "Protégez votre connexion",
         "text": "Votre ARL Deezer fonctionne comme un mot de passe : ne le partagez jamais. Spotify utilise une connexion via le navigateur, et Wavekeep ne voit jamais votre mot de passe Spotify."
       },
       "unofficial": {
-        "title": "Non officiel et sans support",
-        "text": "Wavekeep repose sur des interfaces que Deezer et Spotify peuvent modifier ou bloquer à tout moment, donc des fonctions peuvent cesser de marcher sans préavis."
+        "title": "Non officiel, à vos risques",
+        "text": "Wavekeep est fourni sans garantie, et le développeur décline toute responsabilité en cas de compte banni ou restreint ou de toute autre conséquence de son utilisation. Il repose aussi sur des interfaces que Deezer et Spotify peuvent modifier ou bloquer à tout moment, donc des fonctions peuvent cesser de marcher sans préavis."
       },
       "accounts": {
         "title": "De quel compte ai-je besoin ?",
@@ -403,11 +403,11 @@
       },
       "legal": {
         "q": "Est-ce légal d'utiliser Wavekeep ?",
-        "a": "Cela dépend de votre pays et de ce que vous faites des fichiers. Wavekeep ne peut pas le vérifier pour vous. Considérez les téléchargements comme des copies personnelles et respectez les conditions des services et le droit d'auteur local."
+        "a": "Cela dépend de votre pays et de ce que vous faites des fichiers. Wavekeep ne peut pas le vérifier pour vous, et c'est votre responsabilité. Considérez les téléchargements comme des copies personnelles et respectez les conditions des services et le droit d'auteur local."
       },
       "ban": {
         "q": "Mon compte peut-il être banni ?",
-        "a": "C'est possible, car le téléchargement automatisé peut déclencher des restrictions. Utilisez un compte secondaire si votre compte compte pour vous, et gardez des téléchargements modestes et espacés grâce à « Pause entre les téléchargements » et « Limite de vitesse de téléchargement » dans les Paramètres."
+        "a": "Oui. Le téléchargement automatisé enfreint les conditions des services et peut valoir à un compte un avertissement, une restriction, une suspension ou un bannissement, sans préavis. Espacer les téléchargements avec « Pause entre les téléchargements » et « Limite de vitesse de téléchargement » dans les Paramètres ressemble davantage à une écoute normale, mais n'écarte pas le risque. Un compte secondaire protège votre compte principal. Vous utilisez Wavekeep à vos propres risques, et le développeur n'est pas responsable de ce qui arrive à vos comptes."
       },
       "arl": {
         "q": "Comment obtenir mon ARL Deezer ?",

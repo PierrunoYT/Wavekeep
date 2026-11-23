@@ -357,7 +357,7 @@
     },
     "warning": {
       "title": "Bevor du fortfährst",
-      "intro": "Wavekeep ist ein inoffizielles Tool und steht in keiner Verbindung zu Deezer oder Spotify. Bitte lies das zuerst.",
+      "intro": "Wavekeep ist ein inoffizielles Tool und steht in keiner Verbindung zu Deezer oder Spotify. Du nutzt es auf eigenes Risiko. Bitte lies das zuerst.",
       "dontShow": "Nicht mehr anzeigen",
       "understand": "Verstanden",
       "moreInfo": "Info & FAQ"
@@ -368,16 +368,16 @@
         "text": "Das Herunterladen von Deezer oder Spotify kann gegen deren Nutzungsbedingungen und das Urheberrecht deines Landes verstoßen. Lade nur Musik herunter, die du behalten darfst, und gib die Dateien nicht weiter."
       },
       "account": {
-        "title": "Deine Konten sind gefährdet",
-        "text": "Dienste können Konten einschränken oder sperren, bei denen sie Download-Tools erkennen. Erwäge ein Zweitkonto statt deines Hauptkontos."
+        "title": "Deine Konten können gesperrt werden",
+        "text": "Deezer und Spotify können Konten, bei denen sie Download-Tools erkennen, ohne Vorwarnung verwarnen, einschränken, sperren oder bannen. Nutze kein Konto, das du nicht verlieren kannst; erwäge ein Zweitkonto."
       },
       "credentials": {
         "title": "Schütze deine Anmeldung",
         "text": "Dein Deezer-ARL funktioniert wie ein Passwort, gib ihn deshalb nie weiter. Spotify nutzt eine Anmeldung im Browser, und Wavekeep sieht dein Spotify-Passwort nie."
       },
       "unofficial": {
-        "title": "Inoffiziell und ohne Support",
-        "text": "Wavekeep nutzt Schnittstellen, die Deezer und Spotify jederzeit ändern oder sperren können, daher können Funktionen ohne Vorwarnung ausfallen."
+        "title": "Inoffiziell, auf eigenes Risiko",
+        "text": "Wavekeep wird ohne Gewähr bereitgestellt, und der Entwickler übernimmt keine Verantwortung für gesperrte oder eingeschränkte Konten oder andere Folgen der Nutzung. Außerdem nutzt es Schnittstellen, die Deezer und Spotify jederzeit ändern oder sperren können, daher können Funktionen ohne Vorwarnung ausfallen."
       },
       "accounts": {
         "title": "Welches Konto brauche ich?",
@@ -403,11 +403,11 @@
       },
       "legal": {
         "q": "Ist die Nutzung von Wavekeep legal?",
-        "a": "Das hängt von deinem Land ab und davon, was du mit den Dateien machst. Wavekeep kann das nicht für dich prüfen. Betrachte Downloads als private Kopien und beachte die Bedingungen der Dienste sowie das lokale Urheberrecht."
+        "a": "Das hängt von deinem Land ab und davon, was du mit den Dateien machst. Wavekeep kann das nicht für dich prüfen, und du bist selbst dafür verantwortlich. Betrachte Downloads als private Kopien und beachte die Bedingungen der Dienste sowie das lokale Urheberrecht."
       },
       "ban": {
         "q": "Kann mein Konto gesperrt werden?",
-        "a": "Das ist möglich, denn automatisiertes Herunterladen kann Einschränkungen auslösen. Nutze ein Zweitkonto, wenn dir das Konto wichtig ist, und halte Downloads moderat und mit „Pause zwischen Downloads“ und „Download-Geschwindigkeitslimit“ in den Einstellungen auseinander."
+        "a": "Ja. Automatisiertes Herunterladen verstößt gegen die Bedingungen der Dienste und kann dazu führen, dass ein Konto ohne Vorwarnung verwarnt, eingeschränkt, gesperrt oder gebannt wird. Downloads mit „Pause zwischen Downloads“ und „Download-Geschwindigkeitslimit“ in den Einstellungen auseinanderzuziehen wirkt eher wie normales Hören, beseitigt das Risiko aber nicht. Ein Zweitkonto schützt dein Hauptkonto. Du nutzt Wavekeep auf eigenes Risiko, und der Entwickler übernimmt keine Verantwortung für das, was mit deinen Konten passiert."
       },
       "arl": {
         "q": "Wie bekomme ich meinen Deezer-ARL?",
