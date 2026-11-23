@@ -28,7 +28,7 @@
         "status": {
             "searching": "Ricerca in corso...",
             "noResults": "Nessun risultato trovato.",
-            "loginRequired": "Imposta prima il tuo token ARL nelle Impostazioni.",
+            "loginRequired": "Imposta prima il tuo token ARL di Deezer nelle Impostazioni.",
             "unsupportedUrl": "Tipo di link non supportato",
             "urlError": "Errore: {error}"
         },
@@ -59,7 +59,8 @@
             "loadingTracks": "Caricamento dei brani dell'album...",
             "noTracks": "Nessun brano trovato in questo album.",
             "back": "Torna ai risultati",
-            "backToDiscography": "Torna alla discografia"
+            "backToDiscography": "Torna alla discografia",
+            "downloadError": "Impossibile aggiungere l'album alla coda: {error}"
         },
         "playlist": {
             "downloadAll": "Scarica Tutto",
@@ -69,7 +70,8 @@
             "viewTracks": "Visualizza Brani",
             "loadingTracks": "Caricamento brani della playlist...",
             "noTracks": "Nessun brano trovato in questa playlist.",
-            "back": "Torna ai risultati"
+            "back": "Torna ai risultati",
+            "downloadError": "Impossibile aggiungere la playlist alla coda: {error}"
         },
         "library": {
             "loading": "Caricamento della tua libreria...",
@@ -80,12 +82,14 @@
             "albums": "{count, plural, =1 {1 album} other {# album}}",
             "fans": "{count} fan"
         },
+        "urlPlaceholder": "Incolla l'URL di un brano, album, playlist o artista di Deezer, Spotify, SoundCloud o YouTube...",
         "source": {
             "label": "Sorgente musicale",
             "deezer": "Deezer",
             "spotify": "Spotify",
             "soundcloud": "SoundCloud",
-            "spotifyRequired": "Collega il tuo account Spotify nelle Impostazioni per cercare su Spotify."
+            "youtube": "YouTube",
+            "spotifyRequired": "Collega il tuo account Spotify Premium nelle Impostazioni per usare Spotify."
         }
     },
     "downloads": {
@@ -113,7 +117,8 @@
             "pause": "Metti in pausa",
             "resume": "Riprendi download",
             "retry": "Riprova",
-            "editTags": "Modifica tag"
+            "editTags": "Modifica tag",
+            "showInFolder": "Mostra nella cartella"
         },
         "quality": {
             "label": "Qualità",
@@ -148,7 +153,9 @@
             "success": "Cronologia esportata con successo in {path}",
             "error": "Esportazione fallita: {error}",
             "cancelled": "Esportazione annullata",
-            "emptyHistory": "Nessuna cronologia download da esportare"
+            "emptyHistory": "Nessuna cronologia download da esportare",
+            "invalidDateRange": "Scegli una data di inizio e una data di fine che non sia precedente.",
+            "noItemsInRange": "Nessun download nel periodo scelto."
         }
     },
     "settings": {
@@ -188,7 +195,7 @@
         },
         "theme": {
             "label": "Tema",
-            "hint": "Scegli il tema colore preferito. Il sistema seguirà le impostazioni del tuo SO.",
+            "hint": "Scegli il tema colore preferito. Scuro è quello predefinito; Sistema segue le impostazioni del tuo SO.",
             "light": "Chiaro",
             "dark": "Scuro",
             "system": "Sistema"
@@ -242,7 +249,7 @@
         },
         "skipExisting": {
             "label": "Salta file esistenti",
-            "hint": "Prima di ogni download, cerca nella cartella di download un file con lo stesso nome (MP3 o FLAC). Se esiste, il brano viene saltato, anche dopo aver cancellato la cronologia dei download.",
+            "hint": "Prima di ogni download, controlla se dove verrebbe salvato il brano esiste già un file audio con lo stesso nome (MP3, FLAC, OGG o M4A). Se esiste, il brano viene saltato, anche dopo aver cancellato la cronologia dei download.",
             "enabled": "Salta i file già presenti",
             "disabled": "Scarica sempre"
         },
@@ -268,7 +275,7 @@
         },
         "spotify": {
             "label": "Spotify",
-            "hint": "Scarica l'audio originale di Spotify. Accedi una volta nel browser; la credenziale resta su questo computer.",
+            "hint": "Scarica l'audio originale di Spotify. Richiede un account Spotify Premium; gli account gratuiti vengono rifiutati. Accedi una volta nel browser; la credenziale resta su questo computer.",
             "connect": "Collega Spotify",
             "waiting": "In attesa del browser…",
             "disconnect": "Scollega",
@@ -287,12 +294,12 @@
                 "normal": "Normale (96 kbps)",
                 "high": "Alta (160 kbps)",
                 "veryHigh": "Molto alta (320 kbps)",
-                "lossless": "Senza perdita (FLAC, Premium)"
+                "lossless": "Senza perdita (FLAC)"
             }
         },
         "soundcloud": {
             "label": "DRM di SoundCloud",
-            "drmHint": "Alcune tracce (la maggior parte delle uscite delle grandi etichette) sono disponibili solo come flussi cifrati con Widevine. Scegli un file di dispositivo Widevine (.wvd) per scaricarle; il file resta su questo computer.",
+            "drmHint": "SoundCloud non richiede un account. Alcune tracce (la maggior parte delle uscite delle grandi etichette) sono disponibili solo come flussi cifrati con Widevine. Scegli un file di dispositivo Widevine (.wvd) per scaricarle; il file resta su questo computer.",
             "cdmBrowse": "Scegli dispositivo...",
             "cdmNone": "Nessun dispositivo scelto",
             "cdmClear": "Rimuovi",
@@ -370,7 +377,7 @@
         },
         "warning": {
             "title": "Prima di continuare",
-            "intro": "Wavekeep è uno strumento non ufficiale e non è affiliato a Deezer, Spotify né SoundCloud. Lo usi a tuo rischio. Leggi prima questo avviso.",
+            "intro": "Wavekeep è uno strumento non ufficiale e non è affiliato a Deezer, Spotify, SoundCloud né YouTube. Lo usi a tuo rischio. Leggi prima questo avviso.",
             "dontShow": "Non mostrare più",
             "understand": "Ho capito",
             "moreInfo": "Info e FAQ"
@@ -378,7 +385,7 @@
         "items": {
             "legal": {
                 "title": "Solo per uso personale",
-                "text": "Scaricare da Deezer, Spotify o SoundCloud può violare i loro termini di servizio e le leggi sul diritto d'autore del tuo paese. Scarica solo musica che puoi conservare e non condividere i file."
+                "text": "Scaricare da Deezer, Spotify, SoundCloud o YouTube può violare i loro termini di servizio e le leggi sul diritto d'autore del tuo paese. Scarica solo musica che puoi conservare e non condividere i file."
             },
             "account": {
                 "title": "I tuoi account possono essere bannati",
@@ -390,11 +397,11 @@
             },
             "unofficial": {
                 "title": "Non ufficiale, a tuo rischio",
-                "text": "Wavekeep è fornito senza garanzie, e lo sviluppatore non si assume alcuna responsabilità per account bannati o limitati né per altre conseguenze del suo uso. Si basa inoltre su interfacce che Deezer e Spotify possono modificare o bloccare in qualsiasi momento, quindi alcune funzioni potrebbero smettere di funzionare senza preavviso."
+                "text": "Wavekeep è fornito senza garanzie, e lo sviluppatore non si assume alcuna responsabilità per account bannati o limitati né per altre conseguenze del suo uso. Si basa inoltre su interfacce che Deezer, Spotify, SoundCloud e YouTube possono modificare o bloccare in qualsiasi momento, quindi alcune funzioni potrebbero smettere di funzionare senza preavviso."
             },
             "accounts": {
                 "title": "Di quale account ho bisogno?",
-                "text": "Deezer richiede il cookie ARL del tuo account Deezer. Spotify richiede un account Spotify Premium e un accesso tramite browser; gli account Spotify gratuiti non possono collegarsi. Gli account Deezer gratuiti sono limitati a MP3 128 kbps; Premium sblocca MP3 320 e FLAC. I formati forniti da Spotify dipendono dal brano."
+                "text": "Deezer richiede il cookie ARL del tuo account Deezer. Gli account Deezer gratuiti sono limitati a MP3 128 kbps; Premium sblocca MP3 320 e FLAC. Spotify richiede un account Spotify Premium e un accesso tramite browser; gli account Spotify gratuiti non possono collegarsi, e i formati forniti da Spotify dipendono dal brano. SoundCloud e YouTube non richiedono un account; YouTube richiede yt-dlp, Deno e ffmpeg installati sul tuo computer."
             },
             "files": {
                 "title": "Dove sono i miei file?",
@@ -427,8 +434,8 @@
                 "a": "Accedi a deezer.com dal browser, apri gli strumenti per sviluppatori e copia il valore del cookie chiamato arl. Incollalo nelle Impostazioni. Trattalo come una password."
             },
             "quality": {
-                "q": "Perché non posso scaricare in FLAC o 320 kbps?",
-                "a": "Su Deezer, FLAC e 320 kbps richiedono un account Premium. Spotify richiede Premium per qualsiasi qualità, e ogni brano offre solo i formati che Spotify fornisce. La vista Download mostra la qualità che hai effettivamente ottenuto."
+                "q": "Quale qualità otterrò?",
+                "a": "Gli account Deezer gratuiti ottengono MP3 128 kbps; MP3 320 e FLAC richiedono Premium, e se un brano non esiste nella qualità scelta ne viene usata una inferiore. Per Spotify, le Impostazioni offrono 96, 160 e 320 kbps e Senza perdita (FLAC); ogni brano ha solo i formati che Spotify fornisce, e viene usato il più vicino. SoundCloud e YouTube non hanno un'impostazione di qualità: SoundCloud prende il miglior flusso che offre, di solito AAC 160 kbps (.m4a) o MP3 128 kbps, e YouTube il miglior audio, di solito Opus (.ogg) o AAC (.m4a). La vista Download mostra la qualità che hai effettivamente ottenuto."
             },
             "spotifyFree": {
                 "q": "Spotify funziona con un account gratuito?",
@@ -444,15 +451,23 @@
             },
             "failed": {
                 "q": "Un download non è riuscito. Cosa posso fare?",
-                "a": "Premi Riprova in Download. Per Deezer, controlla che il tuo ARL sia ancora valido nelle Impostazioni. Per Spotify, disconnetti e riconnetti. Una traccia di SoundCloud disponibile solo con DRM richiede un dispositivo Widevine (.wvd) scelto nelle Impostazioni, in DRM di SoundCloud. Se continua a fallire, premi «Copia registro recente» nella scheda Importante e allegalo alla segnalazione."
+                "a": "Premi Riprova in Download. Per Deezer, controlla che il tuo ARL sia ancora valido nelle Impostazioni. Per Spotify, disconnetti e riconnetti. Una traccia di SoundCloud disponibile solo con DRM richiede un dispositivo Widevine (.wvd) scelto nelle Impostazioni, in DRM di SoundCloud; le tracce che hanno solo un'anteprima di 30 secondi non si possono scaricare. Per YouTube, controlla che yt-dlp, Deno e ffmpeg siano installati e aggiorna yt-dlp. Se continua a fallire, premi «Copia registro recente» nella scheda Importante e allegalo alla segnalazione."
             },
             "tags": {
                 "q": "Come modifico tag o copertina?",
                 "a": "Usa l'editor di tag nella barra laterale o il pulsante a matita accanto a un download completato. Sono supportati file MP3, FLAC, OGG e M4A."
             },
+            "soundcloud": {
+                "q": "Mi serve un account per SoundCloud?",
+                "a": "No. Scegli SoundCloud come sorgente in Cerca o incolla un link di soundcloud.com; Wavekeep usa lo stesso accesso anonimo del sito di SoundCloud. Non c'è un'impostazione di qualità: Wavekeep salva il miglior flusso offerto da SoundCloud, di solito AAC 160 kbps come .m4a o MP3 128 kbps. Molte uscite delle grandi etichette sono disponibili solo come flussi cifrati con Widevine; per scaricarle, scegli un file di dispositivo Widevine (.wvd) nelle Impostazioni, in DRM di SoundCloud. Le tracce che hanno solo un'anteprima di 30 secondi (SoundCloud Go+ o limitate per regione) non vengono scaricate. Senza accesso non ci sono «Brani preferiti» né «Le mie playlist»; apri un artista e scegli «Tutti i brani» per ottenere i suoi caricamenti."
+            },
+            "youtube": {
+                "q": "Cosa mi serve per scaricare da YouTube?",
+                "a": "YouTube non richiede un account, ma servono tre programmi gratuiti sul tuo computer: yt-dlp, Deno (che yt-dlp usa per leggere YouTube) e ffmpeg. Installali in modo che si possano avviare da qualsiasi cartella (nel PATH), poi riavvia Wavekeep. Wavekeep salva il miglior audio offerto da YouTube senza ricodificarlo, di solito Opus come .ogg, altrimenti AAC come .m4a. Se le ricerche o i download da YouTube smettono di funzionare, aggiorna prima yt-dlp."
+            },
             "privacy": {
                 "q": "Cosa raccoglie o invia Wavekeep?",
-                "a": "Allo sviluppatore non arriva nulla: niente analisi, telemetria, segnalazioni di crash o controllo degli aggiornamenti. Wavekeep si collega solo a Deezer, Spotify e SoundCloud (e ai loro server di immagini e audio) per accedere, cercare e scaricare. Sul tuo computer conserva le impostazioni, comprese le ultime 20 ricerche se la cronologia delle ricerche è attiva, la cronologia dei download, i temi personalizzati e il registro diagnostico. Gli accessi sono conservati nell'archivio delle credenziali del sistema; l'ARL di Deezer finisce nel file delle impostazioni solo se l'archivio non è disponibile. Puoi cancellare la cronologia dei download in Download, cancellare o disattivare la cronologia delle ricerche nelle Impostazioni ed eliminare il registro qui, in Info e FAQ."
+                "a": "Allo sviluppatore non arriva nulla: niente analisi, telemetria, segnalazioni di crash o controllo degli aggiornamenti. Wavekeep si collega solo a Deezer, Spotify, SoundCloud e YouTube (e ai loro server di immagini e audio) per accedere, cercare e scaricare; per YouTube avvia sul tuo computer yt-dlp, che si collega a YouTube, e ffmpeg. Sul tuo computer conserva le impostazioni, comprese le ultime 20 ricerche se la cronologia delle ricerche è attiva, la cronologia dei download, i temi personalizzati e il registro diagnostico. Gli accessi sono conservati nell'archivio delle credenziali del sistema; l'ARL di Deezer finisce nel file delle impostazioni solo se l'archivio non è disponibile. Puoi cancellare la cronologia dei download in Download, cancellare o disattivare la cronologia delle ricerche nelle Impostazioni ed eliminare il registro qui, in Info e FAQ."
             }
         }
     },

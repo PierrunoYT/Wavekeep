@@ -26,6 +26,7 @@ mod spotify;
 mod tag_editor;
 mod themes;
 mod tray;
+mod youtube;
 
 pub use account::*;
 pub use catalog::*;
@@ -39,6 +40,7 @@ pub use spotify::*;
 pub use tag_editor::*;
 pub use themes::*;
 pub use tray::*;
+pub use youtube::*;
 
 async fn run_blocking<T, F>(operation: F) -> Result<T, String>
 where

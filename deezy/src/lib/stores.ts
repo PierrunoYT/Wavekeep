@@ -11,7 +11,9 @@ export type QualityOption =
   | 'SPOTIFY_320'
   | 'SPOTIFY_AAC'
   | 'SOUNDCLOUD'
-  | `SOUNDCLOUD_${string}`;
+  | `SOUNDCLOUD_${string}`
+  | 'YOUTUBE'
+  | `YOUTUBE_${string}`;
 export type SpotifyQuality = 'normal' | 'high' | 'very-high' | 'lossless';
 export type FolderStructure = 'flat' | 'artist_track' | 'artist_album_track' | 'album_track' | 'custom';
 
@@ -62,7 +64,7 @@ export interface UserInfo {
 }
 
 export interface Track {
-  /** Deezer IDs are numeric; Spotify IDs are `spotify:<base62>`, SoundCloud IDs `soundcloud:<digits>`. */
+  /** Deezer IDs are numeric; Spotify IDs are `spotify:<base62>`, SoundCloud IDs `soundcloud:<digits>`, YouTube IDs `youtube:<11-char>`. */
   id: number | string;
   title: string;
   artist: string;
@@ -72,7 +74,7 @@ export interface Track {
   cover_small: string;
   cover_medium: string;
   preview?: string;
-  provider?: 'deezer' | 'spotify' | 'soundcloud';
+  provider?: 'deezer' | 'spotify' | 'soundcloud' | 'youtube';
 }
 
 export interface DownloadItem {

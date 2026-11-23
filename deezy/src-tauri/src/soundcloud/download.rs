@@ -1,4 +1,3 @@
-use std::future::Future;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -20,7 +19,7 @@ use crate::paths::{
     finalize_download_file, find_existing_download, TrackPathMeta,
 };
 use crate::settings::FolderStructure;
-use crate::audio::{emit_progress, fetch_cover, looks_like};
+use crate::audio::{emit_progress, fetch_cover, looks_like, until_cancelled};
 use crate::tags::{self, TrackTags};
 use crate::widevine;
 
@@ -603,24 +602,6 @@ fn pssh_bytes(pssh: &str) -> Result<Vec<u8>, String> {
     base64::engine::general_purpose::STANDARD
         .decode(pssh.trim())
         .map_err(|_| "SoundCloud sent invalid Widevine data".to_string())
-}
-
-/// Runs a future to completion unless cancellation is requested first. The
-/// request future is dropped on cancellation, which closes its HTTP body.
-async fn until_cancelled<F: Future>(future: F, cancel_flag: &AtomicBool) -> Option<F::Output> {
-    if cancel_flag.load(Ordering::Relaxed) {
-        return None;
-    }
-    let cancelled = async {
-        while !cancel_flag.load(Ordering::Relaxed) {
-            tokio::time::sleep(Duration::from_millis(50)).await;
-        }
-    };
-    tokio::select! {
-        biased;
-        _ = cancelled => None,
-        output = future => Some(output),
-    }
 }
 
 /// POSTs the signed challenge to SoundCloud's licence server. Errors never

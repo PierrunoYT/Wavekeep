@@ -1,4 +1,4 @@
-export type Provider = 'deezer' | 'spotify' | 'soundcloud';
+export type Provider = 'deezer' | 'spotify' | 'soundcloud' | 'youtube';
 export type CatalogId = number | string;
 
 export interface AlbumResult {
@@ -77,6 +77,12 @@ const CATALOG_COMMANDS: Record<Provider, Record<CatalogCommand, string>> = {
     albumTracks: 'get_soundcloud_album_tracks',
     playlistTracks: 'get_soundcloud_playlist_tracks',
     artistAlbums: 'get_soundcloud_artist_albums'
+  },
+  youtube: {
+    track: 'get_youtube_track',
+    albumTracks: 'get_youtube_album_tracks',
+    playlistTracks: 'get_youtube_playlist_tracks',
+    artistAlbums: 'get_youtube_artist_albums'
   }
 };
 
@@ -93,4 +99,9 @@ export function searchCommand(provider: Provider, type: CatalogSearchType): stri
 /** Album ID that lists every upload of a SoundCloud user (`get_soundcloud_album_tracks`). */
 export function soundcloudUserTracksId(userId: CatalogId): string {
   return `user:${userId}`;
+}
+
+/** Album ID that lists every upload of a YouTube channel (`get_youtube_album_tracks`). */
+export function youtubeUserTracksId(channelId: CatalogId): string {
+  return `uploads:${channelId}`;
 }

@@ -1,6 +1,8 @@
 //! Helpers every download engine shares: capped body reads, cover art, the
 //! `download-progress` event and the audio magic-byte check.
 
+use std::future::Future;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use futures::StreamExt;
@@ -86,6 +88,24 @@ pub(crate) async fn fetch_cover(http: &reqwest::Client, url: &str) -> Option<Vec
         bytes.extend_from_slice(&chunk);
     }
     (!bytes.is_empty()).then_some(bytes)
+}
+
+/// Runs a future to completion unless cancellation is requested first. The
+/// future is dropped on cancellation, which closes its HTTP body or child process.
+pub(crate) async fn until_cancelled<F: Future>(future: F, cancel_flag: &AtomicBool) -> Option<F::Output> {
+    if cancel_flag.load(Ordering::Relaxed) {
+        return None;
+    }
+    let cancelled = async {
+        while !cancel_flag.load(Ordering::Relaxed) {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    };
+    tokio::select! {
+        biased;
+        _ = cancelled => None,
+        output = future => Some(output),
+    }
 }
 
 pub(crate) fn emit_progress(

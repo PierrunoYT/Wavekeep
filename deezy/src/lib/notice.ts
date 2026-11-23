@@ -29,6 +29,8 @@ export const FAQ_ITEMS = [
   'failed',
   'report',
   'tags',
+  'soundcloud',
+  'youtube',
   'privacy'
 ] as const;
 

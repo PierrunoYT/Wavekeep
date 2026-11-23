@@ -28,7 +28,7 @@
     "status": {
       "searching": "Searching...",
       "noResults": "No results found.",
-      "loginRequired": "Please set your ARL token in Settings first.",
+      "loginRequired": "Please set your Deezer ARL token in Settings first.",
       "unsupportedUrl": "Unsupported link type",
       "urlError": "Error: {error}"
     },
@@ -59,7 +59,8 @@
       "loadingTracks": "Loading album tracks...",
       "noTracks": "No tracks found in this album.",
       "back": "Back to results",
-      "backToDiscography": "Back to discography"
+      "backToDiscography": "Back to discography",
+      "downloadError": "Could not add the album to the queue: {error}"
     },
     "playlist": {
       "downloadAll": "Download All",
@@ -69,7 +70,8 @@
       "viewTracks": "View Tracks",
       "loadingTracks": "Loading playlist tracks...",
       "noTracks": "No tracks found in this playlist.",
-      "back": "Back to results"
+      "back": "Back to results",
+      "downloadError": "Could not add the playlist to the queue: {error}"
     },
     "library": {
       "loading": "Loading your library...",
@@ -80,12 +82,14 @@
       "albums": "{count, plural, =1 {1 album} other {# albums}}",
       "fans": "{count} fans"
     },
+    "urlPlaceholder": "Paste a Deezer, Spotify, SoundCloud or YouTube track, album, playlist, or artist URL...",
     "source": {
       "label": "Music source",
       "deezer": "Deezer",
       "spotify": "Spotify",
       "soundcloud": "SoundCloud",
-      "spotifyRequired": "Connect your Spotify account in Settings to search Spotify."
+      "youtube": "YouTube",
+      "spotifyRequired": "Connect your Spotify Premium account in Settings to use Spotify."
     }
   },
   "downloads": {
@@ -113,7 +117,8 @@
       "pause": "Pause download",
       "resume": "Resume download",
       "retry": "Retry download",
-      "editTags": "Edit tags"
+      "editTags": "Edit tags",
+      "showInFolder": "Show in folder"
     },
     "quality": {
       "label": "Quality",
@@ -148,7 +153,9 @@
       "success": "History exported successfully to {path}",
       "error": "Failed to export history: {error}",
       "cancelled": "Export cancelled",
-      "emptyHistory": "No download history to export"
+      "emptyHistory": "No download history to export",
+      "invalidDateRange": "Choose a start date and an end date that is not before it.",
+      "noItemsInRange": "No downloads in the selected date range."
     }
   },
   "settings": {
@@ -188,7 +195,7 @@
     },
     "theme": {
       "label": "Theme",
-      "hint": "Choose your preferred color theme. System will follow your OS settings.",
+      "hint": "Choose your preferred color theme. Dark is the default; System follows your OS settings.",
       "light": "Light",
       "dark": "Dark",
       "system": "System"
@@ -242,7 +249,7 @@
     },
     "skipExisting": {
       "label": "Skip Existing Files",
-      "hint": "Before downloading, check the download folder for a file with the same name (MP3 or FLAC). If one is found, the track is skipped, even after the download history was cleared.",
+      "hint": "Before downloading, check whether an audio file with the same name (MP3, FLAC, OGG or M4A) is already where the track would be saved. If one is found, the track is skipped, even after the download history was cleared.",
       "enabled": "Skip files already on disk",
       "disabled": "Always download"
     },
@@ -268,7 +275,7 @@
     },
     "spotify": {
       "label": "Spotify",
-      "hint": "Download the original Spotify audio. Connect once in your browser; the credential stays on this computer.",
+      "hint": "Download the original Spotify audio. Needs a Spotify Premium account; Free accounts are refused. Connect once in your browser; the credential stays on this computer.",
       "connect": "Connect Spotify",
       "waiting": "Waiting for browser…",
       "disconnect": "Disconnect",
@@ -287,12 +294,12 @@
         "normal": "Normal (96 kbps)",
         "high": "High (160 kbps)",
         "veryHigh": "Very high (320 kbps)",
-        "lossless": "Lossless (FLAC, Premium)"
+        "lossless": "Lossless (FLAC)"
       }
     },
     "soundcloud": {
       "label": "SoundCloud DRM",
-      "drmHint": "Some tracks (most major-label releases) are only served as Widevine-encrypted streams. Choose a Widevine device file (.wvd) to download them; the file stays on this computer.",
+      "drmHint": "SoundCloud needs no account. Some tracks (most major-label releases) are only served as Widevine-encrypted streams. Choose a Widevine device file (.wvd) to download them; the file stays on this computer.",
       "cdmBrowse": "Choose device...",
       "cdmNone": "No device chosen",
       "cdmClear": "Remove",
@@ -370,7 +377,7 @@
     },
     "warning": {
       "title": "Before you continue",
-      "intro": "Wavekeep is an unofficial tool and is not affiliated with Deezer, Spotify or SoundCloud. You use it at your own risk. Please read this first.",
+      "intro": "Wavekeep is an unofficial tool and is not affiliated with Deezer, Spotify, SoundCloud or YouTube. You use it at your own risk. Please read this first.",
       "dontShow": "Don't show this again",
       "understand": "I understand",
       "moreInfo": "More info & FAQ"
@@ -378,7 +385,7 @@
     "items": {
       "legal": {
         "title": "Personal use only",
-        "text": "Downloading from Deezer, Spotify or SoundCloud may violate their terms of service and copyright law in your country. Only download music you are allowed to keep, and do not share the files."
+        "text": "Downloading from Deezer, Spotify, SoundCloud or YouTube may violate their terms of service and copyright law in your country. Only download music you are allowed to keep, and do not share the files."
       },
       "account": {
         "title": "Your accounts can be banned",
@@ -390,11 +397,11 @@
       },
       "unofficial": {
         "title": "Unofficial, at your own risk",
-        "text": "Wavekeep comes with no warranty, and the developer takes no responsibility for banned or restricted accounts or any other consequence of using it. It also relies on interfaces that Deezer and Spotify can change or block at any time, so features may stop working without notice."
+        "text": "Wavekeep comes with no warranty, and the developer takes no responsibility for banned or restricted accounts or any other consequence of using it. It also relies on interfaces that Deezer, Spotify, SoundCloud and YouTube can change or block at any time, so features may stop working without notice."
       },
       "accounts": {
         "title": "Which account do I need?",
-        "text": "Deezer needs the ARL cookie of your Deezer account. Spotify needs a Spotify Premium account and a browser login; Spotify Free accounts cannot connect. Deezer Free accounts are limited to MP3 128 kbps; Premium unlocks MP3 320 and FLAC. Which formats Spotify delivers depends on the track."
+        "text": "Deezer needs the ARL cookie of your Deezer account. Deezer Free accounts are limited to MP3 128 kbps; Premium unlocks MP3 320 and FLAC. Spotify needs a Spotify Premium account and a browser login; Spotify Free accounts cannot connect, and which formats Spotify delivers depends on the track. SoundCloud and YouTube need no account; YouTube needs yt-dlp, Deno and ffmpeg installed on your computer."
       },
       "files": {
         "title": "Where are my files?",
@@ -427,8 +434,8 @@
         "a": "Log in to deezer.com in your browser, open the developer tools, and copy the value of the cookie named arl. Paste it in Settings. Treat it like a password."
       },
       "quality": {
-        "q": "Why can't I download FLAC or 320 kbps?",
-        "a": "On Deezer, FLAC and 320 kbps need a Premium account. Spotify needs Premium for every quality, and each track only offers the formats Spotify serves. The Downloads view shows the quality you actually got."
+        "q": "Which quality will I get?",
+        "a": "Deezer Free accounts get MP3 128 kbps; MP3 320 and FLAC need Premium, and a track that lacks your chosen quality falls back to a lower one. Spotify offers 96, 160 and 320 kbps and Lossless (FLAC) in Settings; each track only has the formats Spotify serves, and the closest one is used. SoundCloud and YouTube have no quality setting: SoundCloud takes the best stream it serves, usually AAC 160 kbps (.m4a) or MP3 128 kbps, and YouTube the best audio, usually Opus (.ogg) or AAC (.m4a). The Downloads view shows the quality you actually got."
       },
       "spotifyFree": {
         "q": "Does Spotify work with a Free account?",
@@ -444,15 +451,23 @@
       },
       "failed": {
         "q": "A download failed. What can I do?",
-        "a": "Press Retry in Downloads. For Deezer, check that your ARL is still valid in Settings. For Spotify, disconnect and connect again. A SoundCloud track that is only offered DRM-protected needs a Widevine device (.wvd) chosen in Settings under SoundCloud DRM. If it keeps failing, press Copy recent log on the Important tab and include it in your report."
+        "a": "Press Retry in Downloads. For Deezer, check that your ARL is still valid in Settings. For Spotify, disconnect and connect again. A SoundCloud track that is only offered DRM-protected needs a Widevine device (.wvd) chosen in Settings under SoundCloud DRM; tracks that only have a 30-second preview cannot be downloaded. For YouTube, check that yt-dlp, Deno and ffmpeg are installed, and update yt-dlp. If it keeps failing, press Copy recent log on the Important tab and include it in your report."
       },
       "tags": {
         "q": "How do I edit tags or cover art?",
         "a": "Use the Tag Editor in the sidebar, or the pencil button next to a finished download. MP3, FLAC, OGG and M4A files are supported."
       },
+      "soundcloud": {
+        "q": "Do I need an account for SoundCloud?",
+        "a": "No. Choose SoundCloud as the source in Search or paste a soundcloud.com link; Wavekeep uses the same anonymous access as the SoundCloud website. There is no quality setting: Wavekeep saves the best stream SoundCloud serves, usually AAC 160 kbps as .m4a or MP3 128 kbps. Many major-label releases are only offered as Widevine-encrypted streams; to download those, choose a Widevine device file (.wvd) in Settings under SoundCloud DRM. Tracks that only have a 30-second preview (SoundCloud Go+ or region-restricted) are not downloaded. Without a login there are no Loved Tracks or My Playlists; open an artist and choose All tracks to get their uploads."
+      },
+      "youtube": {
+        "q": "What do I need for YouTube downloads?",
+        "a": "YouTube needs no account, but it needs three free programs on your computer: yt-dlp, Deno (which yt-dlp uses to read YouTube) and ffmpeg. Install them so they can be run from any folder (on your PATH), then restart Wavekeep. Wavekeep saves the best audio YouTube offers without re-encoding it, usually Opus as .ogg, otherwise AAC as .m4a. If YouTube searches or downloads start failing, update yt-dlp first."
+      },
       "privacy": {
         "q": "What does Wavekeep collect or send?",
-        "a": "Nothing goes to the developer: there are no analytics, telemetry, crash reports or update checks. Wavekeep only connects to Deezer, Spotify and SoundCloud (and their image and audio servers) to log in, search and download. On your computer it keeps your settings, including your last 20 searches unless search history is off, your download history, custom themes and the diagnostic log. Logins are kept in your system's credential store; the Deezer ARL only goes into the settings file if that store is unavailable. You can clear the download history in Downloads, clear or turn off search history in Settings, and delete the log here in Info & FAQ."
+        "a": "Nothing goes to the developer: there are no analytics, telemetry, crash reports or update checks. Wavekeep only connects to Deezer, Spotify, SoundCloud and YouTube (and their image and audio servers) to log in, search and download; for YouTube it runs yt-dlp, which contacts YouTube, and ffmpeg on your computer. On your computer it keeps your settings, including your last 20 searches unless search history is off, your download history, custom themes and the diagnostic log. Logins are kept in your system's credential store; the Deezer ARL only goes into the settings file if that store is unavailable. You can clear the download history in Downloads, clear or turn off search history in Settings, and delete the log here in Info & FAQ."
       }
     }
   },

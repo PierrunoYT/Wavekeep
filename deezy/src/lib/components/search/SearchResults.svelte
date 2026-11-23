@@ -293,9 +293,11 @@
               </div>
             {/if}
             <div class="artist-card-name">{artist.name}</div>
+            {#if artist.nb_album > 0 || artist.nb_fan > 0}
             <div class="artist-card-meta">
               {$_('search.artistCard.albums', { values: { count: artist.nb_album } })} · {$_('search.artistCard.fans', { values: { count: formatFans(artist.nb_fan) } })}
             </div>
+            {/if}
           </button>
         {/each}
       </div>

@@ -6,7 +6,7 @@ use lofty::picture::{MimeType, Picture, PictureType};
 use lofty::probe::Probe;
 use lofty::tag::{Accessor, ItemKey, Tag, TagType};
 
-/// The tag fields the Spotify and SoundCloud engines write (lofty, any container).
+/// The tag fields the Spotify, SoundCloud and YouTube engines write (lofty, any container).
 #[derive(Debug, Clone)]
 pub struct TrackTags {
     pub title: String,
@@ -21,8 +21,8 @@ pub struct TrackTags {
 }
 
 /// Writes Vorbis comments (OGG/FLAC), ID3v2 (MP3) or MP4 ilst tags plus the
-/// album cover. Uses one tag model for every container Spotify and SoundCloud
-/// can deliver.
+/// album cover. Uses one tag model for every container Spotify, SoundCloud and
+/// YouTube can deliver.
 pub fn write_tags(
     path: &Path,
     track: &TrackTags,

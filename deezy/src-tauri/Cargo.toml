@@ -1,7 +1,7 @@
 [package]
 name = "wavekeep"
 version = "0.3.0"
-description = "Wavekeep, a desktop music downloader for Deezer and Spotify"
+description = "Wavekeep, a desktop music downloader for Deezer, Spotify, SoundCloud and YouTube"
 authors = ["you"]
 edition = "2021"
 
@@ -53,6 +53,7 @@ sha2 = "0.10"
 hmac = "0.12"
 cmac = "0.7"
 vsd-mp4 = { version = "0.2.1", default-features = false, features = ["decrypt-cenc"] }
+tempfile = "3"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

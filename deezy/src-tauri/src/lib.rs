@@ -11,6 +11,7 @@ mod tags;
 mod themes;
 mod tray;
 mod widevine;
+mod youtube;
 
 use std::sync::Arc;
 use std::collections::{HashMap, HashSet};
@@ -173,6 +174,14 @@ pub fn run() {
             commands::get_soundcloud_playlist_tracks,
             commands::get_soundcloud_artist_albums,
             commands::resolve_soundcloud_url,
+            commands::search_youtube_tracks,
+            commands::search_youtube_artists,
+            commands::search_youtube_playlists,
+            commands::get_youtube_track,
+            commands::get_youtube_album_tracks,
+            commands::get_youtube_playlist_tracks,
+            commands::get_youtube_artist_albums,
+            commands::resolve_youtube_url,
             commands::download_track,
             commands::cancel_download,
             commands::get_settings,

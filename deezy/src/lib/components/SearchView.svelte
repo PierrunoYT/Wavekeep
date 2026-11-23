@@ -13,6 +13,7 @@
     isLibraryType,
     searchCommand,
     soundcloudUserTracksId,
+    youtubeUserTracksId,
     type AlbumResult,
     type ArtistResult,
     type CatalogId,
@@ -99,9 +100,9 @@
     }
   });
 
-  /** Whether the selected source can run a search right now. SoundCloud needs no account. */
+  /** Whether the selected source can run a search right now. SoundCloud and YouTube need no account. */
   function canSearch(): boolean {
-    if (source === 'soundcloud') return true;
+    if (source === 'soundcloud' || source === 'youtube') return true;
     return source === 'spotify' ? spotifyAvailable : isLoggedIn;
   }
 
@@ -233,6 +234,7 @@
   }
 
   function switchSearchType(type: SearchType): void {
+    if (source === 'youtube' && type === 'albums') type = 'tracks';
     clearTimeout(searchTimeout);
     closeAlbum();
     closeArtist();
@@ -251,7 +253,7 @@
     }
   }
 
-  /** Switches between the Deezer, Spotify and SoundCloud catalogs. */
+  /** Switches between the Deezer, Spotify, SoundCloud and YouTube catalogs. */
   function switchSource(next: Provider): void {
     if (next === source) return;
     if (next === 'spotify' && !spotifyAvailable) {
@@ -266,8 +268,11 @@
     activeSearchToken += 1;
     searching = false;
     source = next;
-    // SoundCloud has no account, so no library tabs; fall back to track search.
-    if (next === 'soundcloud' && isLibraryType(searchType)) searchType = 'tracks';
+    // Account-free sources have no user library; YouTube has no native album catalog.
+    if ((next === 'soundcloud' || next === 'youtube') && isLibraryType(searchType)) searchType = 'tracks';
+    if (next === 'youtube' && searchType === 'albums') searchType = 'tracks';
+    downloadingAlbums = new Set();
+    downloadingPlaylists = new Set();
     resetResults();
     errorMsg = '';
     showSearchHistory = false;
@@ -425,17 +430,18 @@
     try {
       const data = await invoke<AlbumResult[]>(catalogCommand(source, 'artistAlbums'), { artistId: String(id) });
       if (token !== activeArtistToken) return;
-      // Most SoundCloud artists only upload tracks, so their uploads come first as one entry.
-      artistAlbums = source === 'soundcloud'
+      // Account-free channels put their uploads first as one entry.
+      const uploadsId = source === 'soundcloud' ? soundcloudUserTracksId(id) : youtubeUserTracksId(id);
+      artistAlbums = source === 'soundcloud' || source === 'youtube'
         ? [{
-            id: soundcloudUserTracksId(id),
+            id: uploadsId,
             title: $_('search.artist.allTracks'),
             artist: name,
             artist_id: id,
             cover_small: picture,
             cover_medium: picture,
             nb_tracks: 0,
-            provider: 'soundcloud'
+            provider: source
           }, ...data]
         : data;
       if (artistAlbums.length === 0) {
@@ -604,6 +610,9 @@
       if (parsed.provider === 'soundcloud') {
         const resolved = await invoke<{ type: string; id: string }>('resolve_soundcloud_url', { url: parsed.id });
         parsed = { provider: 'soundcloud', type: resolved.type, id: resolved.id };
+      } else if (parsed.provider === 'youtube') {
+        const resolved = await invoke<{ type: string; id: string }>('resolve_youtube_url', { url: parsed.id });
+        parsed = { provider: 'youtube', type: resolved.type, id: resolved.id };
       }
       const provider = parsed.provider;
       if (provider === 'deezer' && !isLoggedIn) {
@@ -639,11 +648,12 @@
           break;
           
         case 'artist':
-          if (provider === 'soundcloud') {
-            // A SoundCloud profile link queues the user's uploads.
-            const uploads = await invoke<Track[]>(catalogCommand(provider, 'albumTracks'), {
-              albumId: soundcloudUserTracksId(parsed.id)
-            });
+          if (provider === 'soundcloud' || provider === 'youtube') {
+            // Account-free profile links queue the channel's uploads.
+            const albumId = provider === 'soundcloud'
+              ? soundcloudUserTracksId(parsed.id)
+              : youtubeUserTracksId(parsed.id);
+            const uploads = await invoke<Track[]>(catalogCommand(provider, 'albumTracks'), { albumId });
             if (uploads.length === 0) {
               urlError = $_('search.album.noTracks');
               break;
@@ -792,13 +802,20 @@
           class:active={source === 'soundcloud'}
           onclick={() => switchSource('soundcloud')}
         >{$_('search.source.soundcloud')}</button>
+        <button
+          class="source-btn"
+          class:active={source === 'youtube'}
+          onclick={() => switchSource('youtube')}
+        >{$_('search.source.youtube')}</button>
       </div>
       <div class="search-tabs">
         <button class="tab-btn" class:active={searchType === 'tracks'} onclick={() => switchSearchType('tracks')}>{$_('search.tabs.tracks')}</button>
+        {#if source !== 'youtube'}
         <button class="tab-btn" class:active={searchType === 'albums'} onclick={() => switchSearchType('albums')}>{$_('search.tabs.albums')}</button>
+        {/if}
         <button class="tab-btn" class:active={searchType === 'artists'} onclick={() => switchSearchType('artists')}>{$_('search.tabs.artists')}</button>
         <button class="tab-btn" class:active={searchType === 'playlists'} onclick={() => switchSearchType('playlists')}>{$_('search.tabs.playlists')}</button>
-        {#if source !== 'soundcloud'}
+        {#if source !== 'soundcloud' && source !== 'youtube'}
         <span class="tab-divider" aria-hidden="true"></span>
         <button class="tab-btn" class:active={searchType === 'loved'} onclick={() => switchSearchType('loved')}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -859,7 +876,7 @@
             type="url" 
             bind:value={urlInput}
             onkeydown={(e) => e.key === 'Enter' && handleUrlInput()}
-            placeholder="Paste a Deezer, Spotify or SoundCloud track, album, playlist, or artist URL..."
+            placeholder={$_('search.urlPlaceholder')}
             disabled={parsingUrl}
             class:url-error={urlError}
           />

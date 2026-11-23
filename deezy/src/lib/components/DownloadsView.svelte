@@ -103,6 +103,10 @@
     // SOUNDCLOUD_AAC_160 -> SoundCloud AAC 160 kbps
     const soundcloud = /^SOUNDCLOUD_([A-Z0-9]+)_(\d+)$/.exec(value);
     if (soundcloud) return `SoundCloud ${soundcloud[1]} ${soundcloud[2]} kbps`;
+    if (value === 'YOUTUBE') return 'YouTube';
+    // YOUTUBE_OPUS_106 -> YouTube Opus 106 kbps
+    const youtube = /^YOUTUBE_([A-Z0-9]+)(?:_(\d+))?$/.exec(value);
+    if (youtube) return `YouTube ${youtube[1]}${youtube[2] ? ` ${youtube[2]} kbps` : ''}`;
     return value.replace('MP3_', 'MP3 ').replace('_', ' ');
   }
 

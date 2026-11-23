@@ -139,8 +139,17 @@ pub async fn parse_deezer_url(url: String) -> Result<Value, String> {
         }));
     }
 
+    if matches!(host.as_str(), "youtube.com" | "www.youtube.com" | "m.youtube.com" | "music.youtube.com" | "youtu.be" | "www.youtu.be") {
+        crate::youtube::parse_link(trimmed).ok_or("Invalid YouTube URL")?;
+        return Ok(serde_json::json!({
+            "provider": "youtube",
+            "type": "url",
+            "id": trimmed
+        }));
+    }
+
     if host != "deezer.com" && host != "www.deezer.com" {
-        return Err("Invalid music URL: host must be deezer.com, open.spotify.com or soundcloud.com".to_string());
+        return Err("Invalid music URL: host must be deezer.com, open.spotify.com, soundcloud.com or youtube.com".to_string());
     }
 
     let (content_type, id) = match segments.as_slice() {
@@ -237,6 +246,15 @@ mod tests {
         assert_eq!(parsed["id"], "https://soundcloud.com/flume/sets/skin");
         assert!(parse_deezer_url("https://soundcloud.com/".to_string()).await.is_err());
         assert!(parse_deezer_url("https://on.soundcloud.com/abc".to_string()).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn passes_youtube_links_to_the_provider_resolver() {
+        let parsed = parse_deezer_url("https://youtu.be/jNQXAC9IVRw?t=10".to_string()).await.unwrap();
+        assert_eq!(parsed["provider"], "youtube");
+        assert_eq!(parsed["type"], "url");
+        assert_eq!(parsed["id"], "https://youtu.be/jNQXAC9IVRw?t=10");
+        assert!(parse_deezer_url("https://youtube.com.evil.example/watch?v=jNQXAC9IVRw".to_string()).await.is_err());
     }
 
     #[tokio::test]

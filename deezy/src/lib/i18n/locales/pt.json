@@ -28,7 +28,7 @@
         "status": {
             "searching": "A pesquisar...",
             "noResults": "Nenhum resultado encontrado.",
-            "loginRequired": "Configure o seu token ARL nas Definições primeiro.",
+            "loginRequired": "Configure primeiro o seu token ARL do Deezer nas Definições.",
             "unsupportedUrl": "Tipo de ligação não suportado",
             "urlError": "Erro: {error}"
         },
@@ -59,7 +59,8 @@
             "loadingTracks": "A carregar as faixas do álbum...",
             "noTracks": "Nenhuma faixa encontrada neste álbum.",
             "back": "Voltar aos resultados",
-            "backToDiscography": "Voltar à discografia"
+            "backToDiscography": "Voltar à discografia",
+            "downloadError": "Não foi possível adicionar o álbum à fila: {error}"
         },
         "playlist": {
             "downloadAll": "Transferir Tudo",
@@ -69,7 +70,8 @@
             "viewTracks": "Ver Faixas",
             "loadingTracks": "A carregar faixas da playlist...",
             "noTracks": "Nenhuma faixa encontrada nesta playlist.",
-            "back": "Voltar aos resultados"
+            "back": "Voltar aos resultados",
+            "downloadError": "Não foi possível adicionar a playlist à fila: {error}"
         },
         "library": {
             "loading": "A carregar a sua biblioteca...",
@@ -80,12 +82,14 @@
             "albums": "{count, plural, =1 {1 álbum} other {# álbuns}}",
             "fans": "{count} fãs"
         },
+        "urlPlaceholder": "Cola o URL de uma faixa, álbum, playlist ou artista do Deezer, Spotify, SoundCloud ou YouTube...",
         "source": {
             "label": "Fonte de música",
             "deezer": "Deezer",
             "spotify": "Spotify",
             "soundcloud": "SoundCloud",
-            "spotifyRequired": "Conecte a sua conta Spotify nas Definições para pesquisar no Spotify."
+            "youtube": "YouTube",
+            "spotifyRequired": "Conecte a sua conta Spotify Premium nas Definições para usar o Spotify."
         }
     },
     "downloads": {
@@ -113,7 +117,8 @@
             "pause": "Pausar transferência",
             "resume": "Retomar transferência",
             "retry": "Tentar novamente",
-            "editTags": "Editar tags"
+            "editTags": "Editar tags",
+            "showInFolder": "Mostrar na pasta"
         },
         "quality": {
             "label": "Qualidade",
@@ -148,7 +153,9 @@
             "success": "Histórico exportado com sucesso para {path}",
             "error": "Falha ao exportar histórico: {error}",
             "cancelled": "Exportação cancelada",
-            "emptyHistory": "Sem histórico de transferências para exportar"
+            "emptyHistory": "Sem histórico de transferências para exportar",
+            "invalidDateRange": "Escolha uma data de início e uma data de fim que não seja anterior.",
+            "noItemsInRange": "Sem transferências no período escolhido."
         }
     },
     "settings": {
@@ -188,7 +195,7 @@
         },
         "theme": {
             "label": "Tema",
-            "hint": "Escolha o seu tema de cor preferido. O sistema seguirá as definições do seu SO.",
+            "hint": "Escolha o seu tema de cor preferido. Escuro é o predefinido; Sistema segue as definições do seu SO.",
             "light": "Claro",
             "dark": "Escuro",
             "system": "Sistema"
@@ -242,7 +249,7 @@
         },
         "skipExisting": {
             "label": "Ignorar ficheiros existentes",
-            "hint": "Antes de cada transferência, procura na pasta de transferências um ficheiro com o mesmo nome (MP3 ou FLAC). Se existir, a faixa é ignorada, mesmo depois de limpar o histórico de transferências.",
+            "hint": "Antes de cada transferência, verifica se já existe um ficheiro de áudio com o mesmo nome (MP3, FLAC, OGG ou M4A) no local onde a faixa seria guardada. Se existir, a faixa é ignorada, mesmo depois de limpar o histórico de transferências.",
             "enabled": "Ignorar ficheiros já presentes",
             "disabled": "Transferir sempre"
         },
@@ -268,7 +275,7 @@
         },
         "spotify": {
             "label": "Spotify",
-            "hint": "Descarrega o áudio original do Spotify. Inicia sessão uma vez no navegador; a credencial fica neste computador.",
+            "hint": "Descarrega o áudio original do Spotify. Requer uma conta Spotify Premium; as contas gratuitas são recusadas. Inicia sessão uma vez no navegador; a credencial fica neste computador.",
             "connect": "Ligar Spotify",
             "waiting": "À espera do navegador…",
             "disconnect": "Desligar",
@@ -287,12 +294,12 @@
                 "normal": "Normal (96 kbps)",
                 "high": "Alta (160 kbps)",
                 "veryHigh": "Muito alta (320 kbps)",
-                "lossless": "Sem perdas (FLAC, Premium)"
+                "lossless": "Sem perdas (FLAC)"
             }
         },
         "soundcloud": {
             "label": "DRM do SoundCloud",
-            "drmHint": "Algumas faixas (a maioria dos lançamentos de grandes gravadoras) só são oferecidas como fluxos cifrados com Widevine. Escolha um ficheiro de dispositivo Widevine (.wvd) para as transferir; o ficheiro fica neste computador.",
+            "drmHint": "O SoundCloud não precisa de conta. Algumas faixas (a maioria dos lançamentos de grandes gravadoras) só são oferecidas como fluxos cifrados com Widevine. Escolha um ficheiro de dispositivo Widevine (.wvd) para as transferir; o ficheiro fica neste computador.",
             "cdmBrowse": "Escolher dispositivo...",
             "cdmNone": "Nenhum dispositivo escolhido",
             "cdmClear": "Remover",
@@ -370,7 +377,7 @@
         },
         "warning": {
             "title": "Antes de continuares",
-            "intro": "O Wavekeep é uma ferramenta não oficial e não está associado ao Deezer, ao Spotify nem ao SoundCloud. Usas por tua conta e risco. Lê isto primeiro.",
+            "intro": "O Wavekeep é uma ferramenta não oficial e não está associado ao Deezer, ao Spotify, ao SoundCloud nem ao YouTube. Usas por tua conta e risco. Lê isto primeiro.",
             "dontShow": "Não mostrar novamente",
             "understand": "Compreendo",
             "moreInfo": "Info e FAQ"
@@ -378,7 +385,7 @@
         "items": {
             "legal": {
                 "title": "Apenas para uso pessoal",
-                "text": "Transferir do Deezer, do Spotify ou do SoundCloud pode violar os respetivos termos de serviço e a lei dos direitos de autor do teu país. Transfere apenas música que possas guardar e não partilhes os ficheiros."
+                "text": "Transferir do Deezer, do Spotify, do SoundCloud ou do YouTube pode violar os respetivos termos de serviço e a lei dos direitos de autor do teu país. Transfere apenas música que possas guardar e não partilhes os ficheiros."
             },
             "account": {
                 "title": "As tuas contas podem ser banidas",
@@ -390,11 +397,11 @@
             },
             "unofficial": {
                 "title": "Não oficial, por tua conta e risco",
-                "text": "O Wavekeep é fornecido sem garantia, e o programador não assume qualquer responsabilidade por contas banidas ou restringidas nem por quaisquer outras consequências de o usar. Além disso, depende de interfaces que o Deezer e o Spotify podem alterar ou bloquear a qualquer momento, pelo que as funcionalidades podem deixar de funcionar sem aviso."
+                "text": "O Wavekeep é fornecido sem garantia, e o programador não assume qualquer responsabilidade por contas banidas ou restringidas nem por quaisquer outras consequências de o usar. Além disso, depende de interfaces que o Deezer, o Spotify, o SoundCloud e o YouTube podem alterar ou bloquear a qualquer momento, pelo que as funcionalidades podem deixar de funcionar sem aviso."
             },
             "accounts": {
                 "title": "De que conta preciso?",
-                "text": "O Deezer precisa do cookie ARL da tua conta Deezer. O Spotify precisa de uma conta Spotify Premium e de um início de sessão no navegador; as contas gratuitas do Spotify não podem ligar-se. As contas gratuitas do Deezer estão limitadas a MP3 128 kbps; o Premium desbloqueia MP3 320 e FLAC. Os formatos que o Spotify fornece dependem da faixa."
+                "text": "O Deezer precisa do cookie ARL da tua conta Deezer. As contas gratuitas do Deezer estão limitadas a MP3 128 kbps; o Premium desbloqueia MP3 320 e FLAC. O Spotify precisa de uma conta Spotify Premium e de um início de sessão no navegador; as contas gratuitas do Spotify não podem ligar-se, e os formatos que o Spotify fornece dependem da faixa. O SoundCloud e o YouTube não precisam de conta; o YouTube precisa do yt-dlp, do Deno e do ffmpeg instalados no teu computador."
             },
             "files": {
                 "title": "Onde estão os meus ficheiros?",
@@ -427,8 +434,8 @@
                 "a": "Inicia sessão em deezer.com no navegador, abre as ferramentas de programador e copia o valor do cookie chamado arl. Cola-o nas Definições. Trata-o como uma palavra-passe."
             },
             "quality": {
-                "q": "Porque não consigo transferir em FLAC ou 320 kbps?",
-                "a": "No Deezer, FLAC e 320 kbps exigem uma conta Premium. O Spotify exige Premium para qualquer qualidade, e cada faixa só oferece os formatos que o Spotify fornece. A vista Transferências mostra a qualidade que realmente obtiveste."
+                "q": "Que qualidade vou obter?",
+                "a": "As contas gratuitas do Deezer obtêm MP3 128 kbps; MP3 320 e FLAC exigem Premium, e se uma faixa não existir na qualidade escolhida é usada uma inferior. Para o Spotify, as Definições oferecem 96, 160 e 320 kbps e Sem perdas (FLAC); cada faixa só tem os formatos que o Spotify fornece, e é usado o mais próximo. O SoundCloud e o YouTube não têm definição de qualidade: o SoundCloud usa o melhor fluxo que oferece, normalmente AAC 160 kbps (.m4a) ou MP3 128 kbps, e o YouTube o melhor áudio, normalmente Opus (.ogg) ou AAC (.m4a). A vista Transferências mostra a qualidade que realmente obtiveste."
             },
             "spotifyFree": {
                 "q": "O Spotify funciona com uma conta gratuita?",
@@ -444,15 +451,23 @@
             },
             "failed": {
                 "q": "Uma transferência falhou. O que posso fazer?",
-                "a": "Carrega em Tentar novamente em Transferências. No Deezer, verifica se o teu ARL continua válido nas Definições. No Spotify, desliga e volta a ligar. Uma faixa do SoundCloud disponível apenas com DRM precisa de um dispositivo Widevine (.wvd) escolhido nas Definições, em DRM do SoundCloud. Se continuar a falhar, carrega em «Copiar registo recente» no separador Importante e junta-o ao teu relatório."
+                "a": "Carrega em Tentar novamente em Transferências. No Deezer, verifica se o teu ARL continua válido nas Definições. No Spotify, desliga e volta a ligar. Uma faixa do SoundCloud disponível apenas com DRM precisa de um dispositivo Widevine (.wvd) escolhido nas Definições, em DRM do SoundCloud; as faixas que só têm uma pré-visualização de 30 segundos não podem ser transferidas. No YouTube, verifica se o yt-dlp, o Deno e o ffmpeg estão instalados e atualiza o yt-dlp. Se continuar a falhar, carrega em «Copiar registo recente» no separador Importante e junta-o ao teu relatório."
             },
             "tags": {
                 "q": "Como edito etiquetas ou capas?",
                 "a": "Usa o editor de etiquetas na barra lateral ou o botão do lápis junto a uma transferência concluída. São suportados ficheiros MP3, FLAC, OGG e M4A."
             },
+            "soundcloud": {
+                "q": "Preciso de uma conta para o SoundCloud?",
+                "a": "Não. Escolhe o SoundCloud como fonte em Pesquisa ou cola uma ligação do soundcloud.com; o Wavekeep usa o mesmo acesso anónimo que o site do SoundCloud. Não há definição de qualidade: o Wavekeep guarda o melhor fluxo que o SoundCloud oferece, normalmente AAC 160 kbps como .m4a ou MP3 128 kbps. Muitos lançamentos de grandes gravadoras só são oferecidos como fluxos cifrados com Widevine; para os transferir, escolhe um ficheiro de dispositivo Widevine (.wvd) nas Definições, em DRM do SoundCloud. As faixas que só têm uma pré-visualização de 30 segundos (SoundCloud Go+ ou restritas por região) não são transferidas. Sem início de sessão não há «Músicas favoritas» nem «As minhas playlists»; abre um artista e escolhe «Todas as faixas» para obter os seus carregamentos."
+            },
+            "youtube": {
+                "q": "Do que preciso para transferir do YouTube?",
+                "a": "O YouTube não precisa de conta, mas precisa de três programas gratuitos no teu computador: yt-dlp, Deno (que o yt-dlp usa para ler o YouTube) e ffmpeg. Instala-os de forma a poderem ser executados a partir de qualquer pasta (no PATH) e reinicia o Wavekeep. O Wavekeep guarda o melhor áudio que o YouTube oferece sem o recodificar, normalmente Opus como .ogg, caso contrário AAC como .m4a. Se as pesquisas ou transferências do YouTube deixarem de funcionar, atualiza primeiro o yt-dlp."
+            },
             "privacy": {
                 "q": "O que é que o Wavekeep recolhe ou envia?",
-                "a": "Nada chega ao programador: não há análises, telemetria, relatórios de erros nem verificação de atualizações. O Wavekeep só se liga ao Deezer, ao Spotify e ao SoundCloud (e aos respetivos servidores de imagens e áudio) para iniciar sessão, pesquisar e transferir. No teu computador guarda as definições, incluindo as tuas últimas 20 pesquisas se o histórico de pesquisa estiver ativo, o histórico de transferências, os temas personalizados e o registo de diagnóstico. Os inícios de sessão ficam no cofre de credenciais do sistema; o ARL do Deezer só vai para o ficheiro de definições se esse cofre não estiver disponível. Podes limpar o histórico de transferências em Transferências, limpar ou desativar o histórico de pesquisa nas Definições e eliminar o registo aqui, em Info e FAQ."
+                "a": "Nada chega ao programador: não há análises, telemetria, relatórios de erros nem verificação de atualizações. O Wavekeep só se liga ao Deezer, ao Spotify, ao SoundCloud e ao YouTube (e aos respetivos servidores de imagens e áudio) para iniciar sessão, pesquisar e transferir; para o YouTube executa no teu computador o yt-dlp, que se liga ao YouTube, e o ffmpeg. No teu computador guarda as definições, incluindo as tuas últimas 20 pesquisas se o histórico de pesquisa estiver ativo, o histórico de transferências, os temas personalizados e o registo de diagnóstico. Os inícios de sessão ficam no cofre de credenciais do sistema; o ARL do Deezer só vai para o ficheiro de definições se esse cofre não estiver disponível. Podes limpar o histórico de transferências em Transferências, limpar ou desativar o histórico de pesquisa nas Definições e eliminar o registo aqui, em Info e FAQ."
             }
         }
     },
