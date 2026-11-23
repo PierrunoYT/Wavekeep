@@ -37,6 +37,7 @@ export interface AppSettings {
   spotify_quality: SpotifyQuality;
   spotify_device_id?: string;
   spotify_client_id?: string;
+  soundcloud_cdm_path?: string;
 }
 
 export interface ArlStorageStatus {

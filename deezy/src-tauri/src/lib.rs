@@ -8,6 +8,7 @@ mod soundcloud;
 mod spotify;
 mod themes;
 mod tray;
+mod widevine;
 
 use std::sync::Arc;
 use std::collections::{HashMap, HashSet};
@@ -29,6 +30,8 @@ pub struct FileGrants {
     pub audio: HashSet<PathBuf>,
     pub images: HashSet<PathBuf>,
     pub folders: HashSet<PathBuf>,
+    /// Widevine device files the user picked for SoundCloud DRM.
+    pub cdm: HashSet<PathBuf>,
 }
 
 pub struct AppState {
@@ -200,6 +203,7 @@ pub fn run() {
             commands::parse_deezer_url,
             commands::pick_audio_file,
             commands::pick_cover_image,
+            commands::pick_cdm_file,
             commands::read_image_as_data_url,
             commands::read_file_tags,
             commands::write_file_tags,

@@ -289,6 +289,16 @@
         "veryHigh": "Très élevée (320 kbps)",
         "lossless": "Sans perte (FLAC, Premium)"
       }
+    },
+    "soundcloud": {
+      "label": "DRM SoundCloud",
+      "drmHint": "Certains titres (la plupart des sorties de grands labels) ne sont proposés que sous forme de flux chiffrés Widevine. Choisissez un fichier d'appareil Widevine (.wvd) pour les télécharger ; le fichier reste sur cet ordinateur.",
+      "cdmBrowse": "Choisir un appareil...",
+      "cdmNone": "Aucun appareil choisi",
+      "cdmClear": "Retirer",
+      "cdmSaved": "Appareil Widevine enregistré.",
+      "cdmCleared": "Appareil Widevine retiré.",
+      "cdmInvalid": "Ce fichier est inutilisable : {error}"
     }
   },
   "user": {

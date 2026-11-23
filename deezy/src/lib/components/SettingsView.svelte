@@ -55,6 +55,7 @@
   let spotifyBusy = $state(false);
   let spotifyClientId = $state('');
   let savedSpotifyClientId = '';
+  let soundcloudCdmPath = $state('');
   let showArl = $state(false);
   let saving = $state(false);
   let statusMsg = $state('');
@@ -133,6 +134,7 @@
         spotifyQuality = settings.spotify_quality ?? 'very-high';
         spotifyClientId = settings.spotify_client_id ?? '';
         savedSpotifyClientId = spotifyClientId;
+        soundcloudCdmPath = settings.soundcloud_cdm_path ?? '';
       } catch {
         // First run
       }
@@ -349,6 +351,34 @@
         $_('settings.spotify.clientIdSaveFailed', { values: { error: String(err) } }),
         'error'
       );
+    }
+  }
+
+  // Some SoundCloud tracks are only served Widevine-encrypted; the device
+  // file lets the backend decrypt them. It never leaves this computer.
+  async function pickSoundcloudCdm(): Promise<void> {
+    try {
+      const path = await invoke<string | null>('pick_cdm_file');
+      if (!path) return;
+      await updateSetting('soundcloud_cdm_path', path);
+      soundcloudCdmPath = path;
+      showStatus($_('settings.soundcloud.cdmSaved'), 'success');
+    } catch (err) {
+      console.error('Widevine device selection failed:', err);
+      showStatus(
+        $_('settings.soundcloud.cdmInvalid', { values: { error: String(err) } }),
+        'error'
+      );
+    }
+  }
+
+  async function clearSoundcloudCdm(): Promise<void> {
+    try {
+      await updateSetting('soundcloud_cdm_path', '');
+      soundcloudCdmPath = '';
+      showStatus($_('settings.soundcloud.cdmCleared'), 'info');
+    } catch (err) {
+      console.error('Failed to clear the Widevine device:', err);
     }
   }
 
@@ -604,6 +634,26 @@
       </select>
     </div>
     
+    <div class="form-group">
+      <div class="label-text">{$_('settings.soundcloud.label')}</div>
+      <p class="form-hint">{$_('settings.soundcloud.drmHint')}</p>
+      <div class="input-row">
+        <input
+          type="text"
+          value={soundcloudCdmPath || $_('settings.soundcloud.cdmNone')}
+          readonly
+        />
+        <button class="btn-secondary" onclick={pickSoundcloudCdm}>
+          {$_('settings.soundcloud.cdmBrowse')}
+        </button>
+        {#if soundcloudCdmPath}
+          <button class="btn-secondary" onclick={clearSoundcloudCdm}>
+            {$_('settings.soundcloud.cdmClear')}
+          </button>
+        {/if}
+      </div>
+    </div>
+
     <div class="form-group">
       <label for="folder-structure-select">{$_('settings.folderStructure.label')}</label>
       <p class="form-hint">

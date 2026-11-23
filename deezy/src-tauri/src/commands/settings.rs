@@ -12,6 +12,13 @@ pub async fn get_settings(
         *settings = loaded.clone();
     }
     let _ = grant_folder(&state, &loaded.output_dir).await;
+    // Wavekeep saved this path itself, so it is trusted again after a restart
+    // (grants live in memory only).
+    if !loaded.soundcloud_cdm_path.is_empty() {
+        if let Err(e) = grant_cdm_file(&state, &loaded.soundcloud_cdm_path).await {
+            crate::logging::warn("settings", format!("Saved Widevine device is unavailable: {}", e));
+        }
+    }
 
     // Never return ARL to the renderer process.
     let mut safe = loaded;
@@ -74,6 +81,12 @@ pub async fn update_settings(
             require_granted_folder(&state, &output_dir).await?;
         }
     }
+    if let Some(value) = updates.get("soundcloud_cdm_path") {
+        let path: String = serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+        if !path.trim().is_empty() {
+            require_cdm_file(&state, path.trim()).await?;
+        }
+    }
 
     let _settings_io = state.settings_io.lock().await;
     let mut settings = state.settings.lock().await.clone();
@@ -99,6 +112,10 @@ pub async fn update_settings(
             "spotify_client_id" => {
                 let id: String = serde_json::from_value(value).map_err(|e| e.to_string())?;
                 settings.spotify_client_id = id.trim().to_string();
+            }
+            "soundcloud_cdm_path" => {
+                let path: String = serde_json::from_value(value).map_err(|e| e.to_string())?;
+                settings.soundcloud_cdm_path = path.trim().to_string();
             }
             "locale" => settings.locale = serde_json::from_value(value).map_err(|e| e.to_string())?,
             _ => return Err(format!("Setting '{}' cannot be updated individually", key)),

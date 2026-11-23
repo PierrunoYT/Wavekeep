@@ -38,7 +38,7 @@ Yes. Connect Spotify in Settings (a browser login on Spotify's own page), then c
 
 ### Do I need an account for SoundCloud?
 
-No. Choose SoundCloud as the music source in Search, or paste a `soundcloud.com` link. Wavekeep uses the same anonymous access as the soundcloud.com web player. Tracks that SoundCloud only streams DRM-protected (many major-label releases) or only as a 30-second preview (Go+ or region-restricted) cannot be downloaded; Wavekeep says so instead of saving anything.
+No. Choose SoundCloud as the music source in Search, or paste a `soundcloud.com` link. Wavekeep uses the same anonymous access as the soundcloud.com web player. Many major-label releases are only offered as Widevine-encrypted streams: choose a Widevine device file (`.wvd`) under **Settings → SoundCloud DRM** to download them, otherwise Wavekeep says they cannot be downloaded. Tracks that only have a 30-second preview (Go+ or region-restricted) are refused with a message too.
 
 ### Does Spotify work with a Free account?
 
@@ -71,7 +71,7 @@ Free accounts are always limited to MP3 128 kbps, whatever you choose in Setting
 
 **Spotify** (Premium only, see [Does Spotify work with a Free account?](#does-spotify-work-with-a-free-account)): Settings offers Normal (96 kbps), High (160 kbps), Very high (320 kbps) and Lossless (FLAC). Each setting starts at its own bitrate and falls back to the others when Spotify does not supply it. At each bitrate OGG Vorbis is preferred over MP3. FLAC is only requested for Lossless; if a track offers none of the usual formats, Wavekeep takes whatever Spotify lists, such as AAC. Availability varies by track and region.
 
-**SoundCloud**: there is no quality setting. Wavekeep downloads the best stream SoundCloud serves without encryption, today usually AAC 160 kbps (saved as `.m4a`), sometimes MP3 128 kbps. DRM-protected streams (Go+ quality and many major-label releases) are never used.
+**SoundCloud**: there is no quality setting. Wavekeep downloads the best stream SoundCloud serves, today usually AAC 160 kbps (saved as `.m4a`), sometimes MP3 128 kbps. With a Widevine device (Settings → SoundCloud DRM), the Widevine-encrypted streams that many major-label releases only offer are used as well, usually AAC 256 kbps. FairPlay streams (SoundCloud Go+ on Apple devices) and 30-second previews are never used.
 
 ### Why did my Deezer download fall back to a lower quality?
 

@@ -234,7 +234,7 @@ async fn execute_soundcloud_download(
     app: &AppHandle,
     cancel_flag: Arc<AtomicBool>,
 ) -> Result<DownloadResult, String> {
-    let (output_dir, folder_structure, custom_folder_template, skip_existing, speed_limit_kbps) = {
+    let (output_dir, folder_structure, custom_folder_template, skip_existing, speed_limit_kbps, cdm_path) = {
         let settings = state.settings.lock().await;
         (
             settings.output_dir.clone(),
@@ -242,7 +242,21 @@ async fn execute_soundcloud_download(
             settings.custom_folder_template.clone(),
             settings.skip_existing_files,
             settings.download_speed_limit_kbps,
+            settings.soundcloud_cdm_path.clone(),
         )
+    };
+    // A configured device that vanished only turns DRM back off (and is logged);
+    // it must not break plain SoundCloud downloads.
+    let cdm_path = if cdm_path.is_empty() {
+        None
+    } else {
+        match require_cdm_file(state, &cdm_path).await {
+            Ok(path) => Some(path),
+            Err(e) => {
+                crate::logging::warn("soundcloud", format!("Widevine device unavailable: {}", e));
+                None
+            }
+        }
     };
 
     crate::soundcloud::download::download_track(
@@ -253,6 +267,7 @@ async fn execute_soundcloud_download(
         skip_existing,
         &state.bandwidth,
         speed_limit_kbps,
+        cdm_path.as_deref(),
         app,
         cancel_flag,
     )

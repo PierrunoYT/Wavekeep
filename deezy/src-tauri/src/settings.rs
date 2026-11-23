@@ -78,6 +78,10 @@ pub struct Settings {
     /// Optional own Spotify developer client ID; empty uses the environment or shared default.
     #[serde(default)]
     pub spotify_client_id: String,
+    /// Widevine device (`.wvd`) used to decrypt SoundCloud's DRM-protected
+    /// streams. Empty means DRM tracks are refused instead.
+    #[serde(default)]
+    pub soundcloud_cdm_path: String,
     /// Set on disk only when the plaintext ARL was saved with the keyring
     /// disabled (`WAVEKEEP_NO_KEYRING`). Such a credential is newer than whatever
     /// the keyring holds; other plaintext may be stale and loses to the keyring.
@@ -142,6 +146,7 @@ impl Default for Settings {
             spotify_quality: default_spotify_quality(),
             spotify_device_id: String::new(),
             spotify_client_id: String::new(),
+            soundcloud_cdm_path: String::new(),
             arl_saved_without_keyring: false,
         }
     }
@@ -597,6 +602,10 @@ impl Settings {
             fixed.push("spotify_client_id");
         } else if client_id.len() != self.spotify_client_id.len() {
             self.spotify_client_id = client_id.to_string();
+        }
+        let cdm = self.soundcloud_cdm_path.trim();
+        if cdm.len() != self.soundcloud_cdm_path.len() {
+            self.soundcloud_cdm_path = cdm.to_string();
         }
         // Too short to be real, and it would fail every save. The keyring entry
         // itself is left alone: saves with an empty ARL never touch it.

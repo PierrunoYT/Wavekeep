@@ -289,6 +289,16 @@
         "veryHigh": "Very high (320 kbps)",
         "lossless": "Lossless (FLAC, Premium)"
       }
+    },
+    "soundcloud": {
+      "label": "SoundCloud DRM",
+      "drmHint": "Some tracks (most major-label releases) are only served as Widevine-encrypted streams. Choose a Widevine device file (.wvd) to download them; the file stays on this computer.",
+      "cdmBrowse": "Choose device...",
+      "cdmNone": "No device chosen",
+      "cdmClear": "Remove",
+      "cdmSaved": "Widevine device saved.",
+      "cdmCleared": "Widevine device removed.",
+      "cdmInvalid": "That file cannot be used: {error}"
     }
   },
   "user": {

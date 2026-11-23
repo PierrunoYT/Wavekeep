@@ -66,6 +66,7 @@ fn spawn_and_reap(command: &mut Command) -> std::io::Result<()> {
 const AUDIO_NOT_APPROVED: &str = "Audio file is missing or has not been approved by Wavekeep";
 const IMAGE_NOT_APPROVED: &str = "Cover image is missing or has not been approved by Wavekeep";
 const FOLDER_NOT_APPROVED: &str = "Download folder is missing or has not been approved by Wavekeep";
+const CDM_NOT_APPROVED: &str = "Widevine device file is missing or has not been approved by Wavekeep";
 
 /// A Windows network share as `(server, share)`, lower-cased.
 type NetworkShare = (String, String);
@@ -134,6 +135,7 @@ fn trusted_shares(grants: &FileGrants, output_dir: &str) -> Vec<NetworkShare> {
         .iter()
         .chain(&grants.images)
         .chain(&grants.folders)
+        .chain(&grants.cdm)
         .map(PathBuf::as_path)
         .chain(std::iter::once(Path::new(output_dir)))
         .filter_map(network_share)
@@ -239,6 +241,31 @@ async fn check_image_file(
     match resolve_requested(path, false, &shares).await {
         Some(canonical) if grants.lock().await.images.contains(&canonical) => Ok(canonical),
         _ => Err(IMAGE_NOT_APPROVED.to_string()),
+    }
+}
+
+/// A Widevine device file picked through `pick_cdm_file`.
+async fn grant_cdm_file(state: &AppState, path: &str) -> Result<(), String> {
+    let canonical = canonical_file(path).await?;
+    state.file_grants.lock().await.cdm.insert(canonical);
+    Ok(())
+}
+
+async fn require_cdm_file(state: &AppState, path: &str) -> Result<PathBuf, String> {
+    let output_dir = state.settings.lock().await.output_dir.clone();
+    check_cdm_file(&state.file_grants, &output_dir, path).await
+}
+
+/// A Widevine device file the user picked (or one saved by Wavekeep).
+async fn check_cdm_file(
+    grants: &tokio::sync::Mutex<FileGrants>,
+    output_dir: &str,
+    path: &str,
+) -> Result<PathBuf, String> {
+    let shares = trusted_shares(&*grants.lock().await, output_dir);
+    match resolve_requested(path, false, &shares).await {
+        Some(canonical) if grants.lock().await.cdm.contains(&canonical) => Ok(canonical),
+        _ => Err(CDM_NOT_APPROVED.to_string()),
     }
 }
 

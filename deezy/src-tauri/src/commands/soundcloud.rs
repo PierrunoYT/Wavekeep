@@ -62,3 +62,33 @@ pub async fn resolve_soundcloud_url(url: String) -> Result<api::Resolved, String
     let url = soundcloud::canonical_url(&url).ok_or("Invalid SoundCloud URL")?;
     api::resolve(&url).await
 }
+
+/// Open a picker for a Widevine device (`.wvd`) and approve it. The file is
+/// parsed before it is returned, so a wrong file is refused straight away
+/// rather than at download time.
+#[tauri::command]
+pub async fn pick_cdm_file(
+    state: tauri::State<'_, crate::AppState>,
+    app: tauri::AppHandle,
+) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    app.dialog()
+        .file()
+        .set_title("Select Widevine Device")
+        .add_filter("Widevine Device", &["wvd"])
+        .pick_file(move |file_path| {
+            let _ = tx.send(file_path.map(|p| p.to_string()));
+        });
+
+    let path = rx.await.unwrap_or(None);
+    if let Some(ref path) = path {
+        let bytes = tokio::fs::read(path)
+            .await
+            .map_err(|e| format!("Could not read the Widevine device file: {}", e))?;
+        crate::widevine::Device::parse(&bytes)?;
+        super::grant_cdm_file(&state, path).await?;
+    }
+    Ok(path)
+}

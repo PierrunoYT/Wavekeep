@@ -2,9 +2,11 @@
 //!
 //! Uses SoundCloud's public `api-v2` with the anonymous `client_id` that
 //! soundcloud.com itself embeds in its JavaScript, so no account is needed.
-//! Only streams SoundCloud serves unencrypted (HLS AAC/MP3 and progressive
-//! MP3) are downloaded; DRM-protected (encrypted HLS, common for major-label
-//! releases) and preview-only streams are refused.
+//! Unencrypted streams (HLS AAC/MP3 and progressive MP3) always work. The
+//! Widevine-encrypted streams (`ctr-encrypted-hls`, common for major-label
+//! releases) need a `.wvd` device the user picks in Settings; `widevine.rs`
+//! runs the licence exchange and decrypts the CENC samples. FairPlay
+//! (`cbc-encrypted-hls`) and preview-only streams are still refused.
 
 pub mod api;
 pub mod download;

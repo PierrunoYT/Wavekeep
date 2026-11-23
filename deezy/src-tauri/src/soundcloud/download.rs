@@ -1,7 +1,9 @@
+use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
+use base64::Engine as _;
 use futures::StreamExt;
 use serde_json::Value;
 use tauri::Emitter;
@@ -19,22 +21,29 @@ use crate::paths::{
 use crate::settings::FolderStructure;
 use crate::spotify::download::{emit_progress, fetch_cover, looks_like};
 use crate::spotify::tags::{self, TrackTags};
+use crate::widevine;
 
 /// Shown as the requested quality: SoundCloud has no quality setting, the
-/// best unencrypted stream is always taken.
+/// best stream is always taken.
 const REQUESTED_QUALITY: &str = "SOUNDCLOUD";
 /// Formats that count as "already downloaded" at the destination.
 const AUDIO_EXTENSIONS: [&str; 2] = [".m4a", ".mp3"];
 const MAX_PLAYLIST_BYTES: usize = 2 * 1024 * 1024;
 const MAX_AUDIO_BYTES: u64 = 1024 * 1024 * 1024;
+/// One HLS segment, decrypted in memory before it is written.
+const MAX_PART_BYTES: u64 = 64 * 1024 * 1024;
+/// A Widevine licence is a few kilobytes; anything far larger is not one.
+const MAX_LICENSE_BYTES: usize = 1024 * 1024;
 /// Per segment (or per progressive file) request, so one stalled response
 /// cannot hold a download forever. The client's 30 s read timeout still
 /// applies between chunks.
 const PART_TIMEOUT: Duration = Duration::from_secs(600);
 const API_PREFIX: &str = "https://api-v2.soundcloud.com/";
+/// SoundCloud's Widevine licence server, reached with the `licenseAuthToken`
+/// that comes back with the encrypted transcoding URL.
+const LICENSE_URL: &str = "https://license.media-streaming.soundcloud.cloud/playback/widevine";
 
-const DRM_MESSAGE: &str =
-    "SoundCloud only offers this track as a DRM-protected stream, which Wavekeep does not download";
+const DRM_MESSAGE: &str = "SoundCloud only offers this track as a DRM-protected stream; choose a Widevine device (.wvd) in Settings to download it";
 const PREVIEW_MESSAGE: &str =
     "SoundCloud only offers a 30-second preview of this track (SoundCloud Go+ or region-restricted)";
 
@@ -44,6 +53,16 @@ struct Choice {
     progressive: bool,
     ext: &'static str,
     label: String,
+    /// `ctr-encrypted-hls`: needs a Widevine CDM and CENC decryption.
+    drm: bool,
+}
+
+/// An HLS media playlist: the init section followed by every segment, plus the
+/// Widevine PSSH when the stream is DRM-protected.
+#[derive(Debug, Clone, PartialEq)]
+struct Hls {
+    parts: Vec<Url>,
+    pssh: Option<String>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -55,6 +74,7 @@ pub async fn download_track(
     skip_existing: bool,
     bandwidth: &BandwidthLimiter,
     speed_limit_kbps: u32,
+    cdm_path: Option<&Path>,
     app: &tauri::AppHandle,
     cancel_flag: Arc<AtomicBool>,
 ) -> Result<DownloadResult, String> {
@@ -69,13 +89,19 @@ pub async fn download_track(
     );
     emit_progress(app, track_key, &track.title, 0.0, "resolving");
 
-    let choice = select_transcoding(&raw).map_err(|e| {
+    let choice = select_transcoding(&raw, cdm_path.is_some()).map_err(|e| {
         crate::logging::warn("soundcloud", format!("no usable stream: {}", e));
         e
     })?;
     crate::logging::debug(
         "soundcloud",
-        format!("selected {} ({}, {})", choice.label, choice.ext, if choice.progressive { "progressive" } else { "hls" }),
+        format!(
+            "selected {} ({}, {}{})",
+            choice.label,
+            choice.ext,
+            if choice.progressive { "progressive" } else { "hls" },
+            if choice.drm { ", DRM" } else { "" }
+        ),
     );
 
     let path_meta = TrackPathMeta {
@@ -103,14 +129,22 @@ pub async fn download_track(
     }
 
     let authorization = raw["track_authorization"].as_str().unwrap_or_default();
-    let stream_url = stream_url(&choice.url, authorization).await?;
+    let (stream_url, license_token) = stream_url(&choice.url, authorization).await?;
     let http = api::http()?;
-    let parts = if choice.progressive {
-        vec![stream_url]
+    let (parts, pssh) = if choice.progressive {
+        (vec![stream_url], None)
     } else {
         let playlist = fetch_text(&http, &stream_url).await?;
-        parse_hls(&stream_url, &playlist)?
+        let hls = parse_hls(&stream_url, &playlist)?;
+        (hls.parts, hls.pssh)
     };
+    if !choice.drm && pssh.is_some() {
+        // The transcoding looked plain but SoundCloud encrypted the playlist.
+        return Err(DRM_MESSAGE.to_string());
+    }
+    if choice.drm && pssh.is_none() {
+        return Err("SoundCloud did not send the Widevine data for this track".to_string());
+    }
     crate::logging::debug("soundcloud", format!("{} part(s) to fetch", parts.len()));
 
     let download_path = build_download_path(output_dir, folder_structure, custom_folder_template, &path_meta, choice.ext)?;
@@ -135,40 +169,99 @@ pub async fn download_track(
     let mut head: Vec<u8> = Vec::with_capacity(8);
     let mut written = 0u64;
     let count = parts.len();
-    for (index, part) in parts.iter().enumerate() {
-        let mut progress = |part_done: u64, part_len: Option<u64>| {
-            // Segments advance progress one by one; a single progressive file
-            // advances it by bytes.
-            let fraction = match part_len {
-                Some(len) if count == 1 && len > 0 => (part_done as f64 / len as f64).min(1.0),
-                _ => index as f64 / count as f64,
-            };
-            emit_progress(app, track_key, &track.title, 5.0 + fraction * 85.0, "downloading");
-        };
-        let fetched = fetch_part(
-            &http,
-            part,
-            &mut file,
-            &mut head,
-            &mut written,
-            bandwidth,
-            speed_limit_kbps,
-            &cancel_flag,
-            &mut progress,
-        )
-        .await;
-        match fetched {
-            Ok(true) => {}
-            Ok(false) => {
+    if choice.drm {
+        let cdm = cdm_path.ok_or(DRM_MESSAGE)?;
+        let init = match fetch_bytes(&http, &parts[0], bandwidth, speed_limit_kbps, &cancel_flag).await {
+            Ok(Some(bytes)) => bytes,
+            Ok(None) => {
                 drop(file);
                 cleanup_temp_file_async(&temp_path).await;
                 return Ok(result(String::new(), &choice.label, "canceled"));
             }
             Err(e) => {
-                crate::logging::warn("soundcloud", format!("part {}/{} failed after {} bytes: {}", index + 1, count, written, e));
                 drop(file);
                 cleanup_temp_file_async(&temp_path).await;
                 return Err(e);
+            }
+        };
+        let key = widevine_key(&http, cdm, pssh.as_deref().unwrap_or_default(), &license_token).await?;
+        let cenc = widevine::Cenc::new(&init, &key)?;
+        file.write_all(&init).await.map_err(|e| e.to_string())?;
+        head.extend_from_slice(&init[..init.len().min(8)]);
+        written += init.len() as u64;
+
+        for (index, part) in parts.iter().enumerate().skip(1) {
+            if cancel_flag.load(Ordering::Relaxed) {
+                drop(file);
+                cleanup_temp_file_async(&temp_path).await;
+                return Ok(result(String::new(), &choice.label, "canceled"));
+            }
+            let segment = match fetch_bytes(&http, part, bandwidth, speed_limit_kbps, &cancel_flag).await {
+                Ok(Some(bytes)) => bytes,
+                Ok(None) => {
+                    drop(file);
+                    cleanup_temp_file_async(&temp_path).await;
+                    return Ok(result(String::new(), &choice.label, "canceled"));
+                }
+                Err(e) => {
+                    crate::logging::warn("soundcloud", format!("segment {}/{} failed: {}", index, count, e));
+                    drop(file);
+                    cleanup_temp_file_async(&temp_path).await;
+                    return Err(e);
+                }
+            };
+            let decrypted = cenc.fragment(segment)?;
+            written += decrypted.len() as u64;
+            if written > MAX_AUDIO_BYTES {
+                drop(file);
+                cleanup_temp_file_async(&temp_path).await;
+                return Err("SoundCloud audio is too large".to_string());
+            }
+            file.write_all(&decrypted).await.map_err(|e| e.to_string())?;
+            emit_progress(
+                app,
+                track_key,
+                &track.title,
+                5.0 + (index as f64 / count as f64) * 85.0,
+                "downloading",
+            );
+        }
+    } else {
+        for (index, part) in parts.iter().enumerate() {
+            let mut progress = |part_done: u64, part_len: Option<u64>| {
+                // Segments advance progress one by one; a single progressive file
+                // advances it by bytes.
+                let fraction = match part_len {
+                    Some(len) if count == 1 && len > 0 => (part_done as f64 / len as f64).min(1.0),
+                    _ => index as f64 / count as f64,
+                };
+                emit_progress(app, track_key, &track.title, 5.0 + fraction * 85.0, "downloading");
+            };
+            let fetched = fetch_part(
+                &http,
+                part,
+                &mut file,
+                &mut head,
+                &mut written,
+                bandwidth,
+                speed_limit_kbps,
+                &cancel_flag,
+                &mut progress,
+            )
+            .await;
+            match fetched {
+                Ok(true) => {}
+                Ok(false) => {
+                    drop(file);
+                    cleanup_temp_file_async(&temp_path).await;
+                    return Ok(result(String::new(), &choice.label, "canceled"));
+                }
+                Err(e) => {
+                    crate::logging::warn("soundcloud", format!("part {}/{} failed after {} bytes: {}", index + 1, count, written, e));
+                    drop(file);
+                    cleanup_temp_file_async(&temp_path).await;
+                    return Err(e);
+                }
             }
         }
     }
@@ -268,11 +361,12 @@ fn bitrate(preset: &str, codec: &str) -> u32 {
         .unwrap_or(128)
 }
 
-/// Picks the highest-bitrate stream SoundCloud serves unencrypted and in full:
-/// AAC or MP3 over HLS, or progressive MP3. Encrypted (DRM) and snipped
-/// (30-second preview) streams are never selected, and neither is the
-/// adaptive `audio/mpegurl` master playlist.
-fn select_transcoding(track: &Value) -> Result<Choice, String> {
+/// Picks the best stream SoundCloud serves in full: AAC or MP3 over HLS,
+/// progressive MP3 and, once a Widevine device is configured, the encrypted
+/// `ctr-encrypted-hls` AAC streams that many major-label tracks only offer.
+/// FairPlay (`cbc-encrypted-hls`), snipped previews and the adaptive
+/// `audio/mpegurl` master playlist are never selected.
+fn select_transcoding(track: &Value, drm: bool) -> Result<Choice, String> {
     if track["policy"].as_str() == Some("BLOCK") {
         return Err("This SoundCloud track is not available in your country".to_string());
     }
@@ -281,18 +375,26 @@ fn select_transcoding(track: &Value) -> Result<Choice, String> {
     for transcoding in track["media"]["transcodings"].as_array().into_iter().flatten() {
         let protocol = transcoding["format"]["protocol"].as_str().unwrap_or_default();
         let mime = transcoding["format"]["mime_type"].as_str().unwrap_or_default();
-        if protocol.contains("encrypted") {
+        let encrypted = protocol.contains("encrypted");
+        if encrypted {
             saw_encrypted = true;
-            continue;
+            // Only Widevine/CTR can be decrypted here; CBC is FairPlay.
+            if !drm || protocol != "ctr-encrypted-hls" {
+                continue;
+            }
         }
         if transcoding["snipped"].as_bool() == Some(true) {
             saw_snipped = true;
             continue;
         }
-        let progressive = match protocol {
-            "progressive" => true,
-            "hls" => false,
-            _ => continue,
+        let progressive = if encrypted {
+            false
+        } else {
+            match protocol {
+                "progressive" => true,
+                "hls" => false,
+                _ => continue,
+            }
         };
         let (ext, codec) = if mime.starts_with("audio/mpeg") {
             (".mp3", "MP3")
@@ -301,6 +403,9 @@ fn select_transcoding(track: &Value) -> Result<Choice, String> {
         } else {
             continue;
         };
+        if encrypted && ext != ".m4a" {
+            continue;
+        }
         // The resolve request carries the client_id, so it may only go to api-v2.
         let Some(url) = transcoding["url"].as_str().filter(|url| url.starts_with(API_PREFIX)) else {
             continue;
@@ -316,6 +421,7 @@ fn select_transcoding(track: &Value) -> Result<Choice, String> {
                     progressive,
                     ext,
                     label: format!("SOUNDCLOUD_{}_{}", codec, kbps),
+                    drm: encrypted,
                 },
             ));
         }
@@ -328,18 +434,33 @@ fn select_transcoding(track: &Value) -> Result<Choice, String> {
     }
 }
 
-/// Exchanges a transcoding URL for the signed stream (or playlist) URL.
-async fn stream_url(transcoding_url: &str, authorization: &str) -> Result<Url, String> {
+/// Exchanges a transcoding URL for the signed stream (or playlist) URL, plus
+/// the licence token that comes back with a DRM stream.
+async fn stream_url(transcoding_url: &str, authorization: &str) -> Result<(Url, String), String> {
     let mut url = Url::parse(transcoding_url).map_err(|_| "Invalid SoundCloud stream URL".to_string())?;
     if !authorization.is_empty() {
         url.query_pairs_mut().append_pair("track_authorization", authorization);
     }
     let answer = api::api_url(url).await?;
-    answer["url"]
+    let stream = answer["url"]
         .as_str()
         .and_then(|url| Url::parse(url).ok())
         .filter(|url| url.scheme() == "https")
-        .ok_or_else(|| "SoundCloud did not return a stream URL".to_string())
+        .ok_or_else(|| "SoundCloud did not return a stream URL".to_string())?;
+    // The field is `licenseAuthToken` today; the scan keeps a renamed field
+    // working the way other SoundCloud clients look for it.
+    let token = answer["licenseAuthToken"]
+        .as_str()
+        .map(str::to_string)
+        .or_else(|| {
+            answer.as_object()?.iter().find_map(|(key, value)| {
+                let key = key.to_ascii_lowercase();
+                let looks_right = key.contains("license") || key.contains("drm") || key.contains("token");
+                (looks_right && value.is_string()).then(|| value.as_str().unwrap_or_default().to_string())
+            })
+        })
+        .unwrap_or_default();
+    Ok((stream, token))
 }
 
 async fn fetch_text(http: &reqwest::Client, url: &Url) -> Result<String, String> {
@@ -357,9 +478,9 @@ async fn fetch_text(http: &reqwest::Client, url: &Url) -> Result<String, String>
 }
 
 /// The init section (`#EXT-X-MAP`) followed by every media segment of an HLS
-/// media playlist. Encrypted playlists (any `#EXT-X-KEY` other than
-/// `METHOD=NONE`) are refused, and so are master playlists and non-https URLs.
-fn parse_hls(base: &Url, playlist: &str) -> Result<Vec<Url>, String> {
+/// media playlist, plus the Widevine PSSH when the playlist is encrypted.
+/// Master playlists and non-https URLs are refused.
+fn parse_hls(base: &Url, playlist: &str) -> Result<Hls, String> {
     if !playlist.trim_start().starts_with("#EXTM3U") {
         return Err("SoundCloud sent an invalid HLS playlist".to_string());
     }
@@ -370,10 +491,20 @@ fn parse_hls(base: &Url, playlist: &str) -> Result<Vec<Url>, String> {
             .ok_or_else(|| "SoundCloud sent an invalid HLS segment URL".to_string())
     };
     let mut parts = Vec::new();
+    let mut pssh = None;
+    let mut encrypted = false;
     for line in playlist.lines().map(str::trim).filter(|line| !line.is_empty()) {
-        if let Some(attributes) = line.strip_prefix("#EXT-X-KEY:") {
-            if !attributes.split(',').any(|attribute| attribute.trim() == "METHOD=NONE") {
-                return Err(DRM_MESSAGE.to_string());
+        if let Some(attributes) = line
+            .strip_prefix("#EXT-X-KEY:")
+            .or_else(|| line.strip_prefix("#EXT-X-SESSION-KEY:"))
+        {
+            let method = attributes
+                .split(',')
+                .find_map(|attribute| attribute.trim().strip_prefix("METHOD="))
+                .unwrap_or("NONE");
+            if method != "NONE" {
+                encrypted = true;
+                pssh = pssh.or_else(|| data_uri_pssh(attributes));
             }
         } else if line.starts_with("#EXT-X-STREAM-INF") {
             return Err("SoundCloud sent a master playlist instead of a media playlist".to_string());
@@ -394,7 +525,128 @@ fn parse_hls(base: &Url, playlist: &str) -> Result<Vec<Url>, String> {
     if parts.is_empty() {
         return Err("SoundCloud sent an empty HLS playlist".to_string());
     }
-    Ok(parts)
+    if encrypted && pssh.is_none() {
+        // A key Wavekeep cannot use: FairPlay, or a Widevine key without data.
+        return Err(DRM_MESSAGE.to_string());
+    }
+    Ok(Hls { parts, pssh })
+}
+
+/// The base64 PSSH wrapped in the `#EXT-X-KEY` data URI SoundCloud sends.
+fn data_uri_pssh(attributes: &str) -> Option<String> {
+    const PREFIX: &str = "data:text/plain;base64,";
+    let start = attributes.find(PREFIX)? + PREFIX.len();
+    let rest = &attributes[start..];
+    Some(rest[..rest.find('"')?].to_string())
+}
+
+/// The Widevine content key for one DRM stream: read the device, build the
+/// challenge, send it to SoundCloud's licence server, unwrap the answer.
+async fn widevine_key(
+    http: &reqwest::Client,
+    cdm: &Path,
+    pssh: &str,
+    license_token: &str,
+) -> Result<[u8; 16], String> {
+    let bytes = pssh_bytes(pssh)?;
+    let pssh = widevine::parse_pssh(&bytes)?;
+    let provision = tokio::fs::read(cdm)
+        .await
+        .map_err(|e| format!("Could not read the Widevine device file: {}", e))?;
+    let device = widevine::Device::parse(&provision)?;
+    let challenge = widevine::Challenge::new(device, &pssh)?;
+    let license = request_license(http, license_token, challenge.message()).await?;
+    let key = challenge.content_key(&license)?;
+    crate::logging::info("soundcloud", "Widevine licence accepted");
+    Ok(key)
+}
+
+fn pssh_bytes(pssh: &str) -> Result<Vec<u8>, String> {
+    base64::engine::general_purpose::STANDARD
+        .decode(pssh.trim())
+        .map_err(|_| "SoundCloud sent invalid Widevine data".to_string())
+}
+
+/// POSTs the signed challenge to SoundCloud's licence server. Errors never
+/// carry the URL: it holds the licence token.
+async fn request_license(http: &reqwest::Client, token: &str, challenge: &[u8]) -> Result<Vec<u8>, String> {
+    if token.is_empty() {
+        return Err("SoundCloud did not return a licence token for this track".to_string());
+    }
+    let mut url = Url::parse(LICENSE_URL).map_err(|_| "Invalid Widevine licence URL".to_string())?;
+    url.query_pairs_mut().append_pair("license_token", token);
+    let response = http
+        .post(url)
+        .header(reqwest::header::ACCEPT, "*/*")
+        .header(reqwest::header::CONTENT_TYPE, "application/octet-stream")
+        .header(reqwest::header::ORIGIN, "https://soundcloud.com")
+        .header(reqwest::header::REFERER, "https://soundcloud.com/")
+        .body(challenge.to_vec())
+        .timeout(Duration::from_secs(60))
+        .send()
+        .await
+        .map_err(|e| format!("SoundCloud licence request failed: {}", e.without_url()))?;
+    let status = response.status();
+    if !status.is_success() {
+        return Err(format!("SoundCloud licence request failed ({})", status));
+    }
+    crate::spotify::read_capped(response, MAX_LICENSE_BYTES, "SoundCloud licence").await
+}
+
+/// Fetches one segment into memory (it must be decrypted before it is
+/// written). Retried once when the request fails before any byte arrived.
+/// Returns `Ok(None)` when the download was cancelled.
+async fn fetch_bytes(
+    http: &reqwest::Client,
+    url: &Url,
+    bandwidth: &BandwidthLimiter,
+    speed_limit_kbps: u32,
+    cancel_flag: &AtomicBool,
+) -> Result<Option<Vec<u8>>, String> {
+    for attempt in 0..2 {
+        let mut body = Vec::new();
+        let mut started = false;
+        let fetched: Result<(), String> = async {
+            let response = http
+                .get(url.clone())
+                .timeout(PART_TIMEOUT)
+                .send()
+                .await
+                .map_err(|e| format!("SoundCloud audio request failed: {}", e.without_url()))?;
+            if !response.status().is_success() {
+                return Err(format!("SoundCloud audio request failed ({})", response.status()));
+            }
+            let mut stream = response.bytes_stream();
+            while let Some(chunk) = stream.next().await {
+                if cancel_flag.load(Ordering::Relaxed) {
+                    return Ok(());
+                }
+                let chunk = chunk.map_err(|e| format!("SoundCloud audio read failed: {}", e.without_url()))?;
+                if body.len() as u64 + chunk.len() as u64 > MAX_PART_BYTES {
+                    return Err("SoundCloud audio segment is too large".to_string());
+                }
+                started = true;
+                bandwidth.acquire(chunk.len(), speed_limit_kbps, cancel_flag).await;
+                if cancel_flag.load(Ordering::Relaxed) {
+                    return Ok(());
+                }
+                body.extend_from_slice(&chunk);
+            }
+            Ok(())
+        }
+        .await;
+        if cancel_flag.load(Ordering::Relaxed) {
+            return Ok(None);
+        }
+        match fetched {
+            Ok(()) => return Ok(Some(body)),
+            Err(e) if !started && attempt == 0 => {
+                crate::logging::debug("soundcloud", format!("retrying segment: {}", e));
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    Err("SoundCloud audio segment download failed".to_string())
 }
 
 /// Appends one URL's body to `file`, paced by the shared bandwidth limiter.
@@ -483,62 +735,111 @@ mod tests {
     fn prefers_the_highest_unencrypted_bitrate() {
         // The shape SoundCloud sends today: AAC 160 and 96 over HLS plus the
         // adaptive master playlist.
-        let choice = select_transcoding(&track(vec![
-            transcoding("aac_96k", "hls", AAC, false),
-            transcoding("abr_sq", "hls", "audio/mpegurl", false),
-            transcoding("aac_160k", "hls", AAC, false),
-        ]))
+        let choice = select_transcoding(
+            &track(vec![
+                transcoding("aac_96k", "hls", AAC, false),
+                transcoding("abr_sq", "hls", "audio/mpegurl", false),
+                transcoding("aac_160k", "hls", AAC, false),
+            ]),
+            false,
+        )
         .unwrap();
         assert_eq!(choice.label, "SOUNDCLOUD_AAC_160");
         assert_eq!(choice.ext, ".m4a");
         assert!(!choice.progressive);
+        assert!(!choice.drm);
         assert!(choice.url.contains("aac_160k"));
     }
 
     #[test]
     fn prefers_progressive_mp3_over_hls_mp3_and_aac_160_over_mp3() {
-        let mp3 = select_transcoding(&track(vec![
-            transcoding("mp3_1_0", "hls", "audio/mpeg", false),
-            transcoding("mp3_0_1", "progressive", "audio/mpeg", false),
-        ]))
+        let mp3 = select_transcoding(
+            &track(vec![
+                transcoding("mp3_1_0", "hls", "audio/mpeg", false),
+                transcoding("mp3_0_1", "progressive", "audio/mpeg", false),
+            ]),
+            false,
+        )
         .unwrap();
         assert!(mp3.progressive);
         assert_eq!((mp3.ext, mp3.label.as_str()), (".mp3", "SOUNDCLOUD_MP3_128"));
 
-        let aac = select_transcoding(&track(vec![
-            transcoding("mp3_0_1", "progressive", "audio/mpeg", false),
-            transcoding("aac_160k", "hls", AAC, false),
-        ]))
+        let aac = select_transcoding(
+            &track(vec![
+                transcoding("mp3_0_1", "progressive", "audio/mpeg", false),
+                transcoding("aac_160k", "hls", AAC, false),
+            ]),
+            false,
+        )
         .unwrap();
         assert_eq!(aac.label, "SOUNDCLOUD_AAC_160");
     }
 
     #[test]
-    fn never_selects_encrypted_or_snipped_streams() {
-        let drm = select_transcoding(&track(vec![
-            transcoding("aac_256k", "ctr-encrypted-hls", AAC, false),
-            transcoding("aac_160k", "cbc-encrypted-hls", AAC, false),
-        ]))
+    fn never_selects_encrypted_or_snipped_streams_without_a_device() {
+        let drm = select_transcoding(
+            &track(vec![
+                transcoding("aac_256k", "ctr-encrypted-hls", AAC, false),
+                transcoding("aac_160k", "cbc-encrypted-hls", AAC, false),
+            ]),
+            false,
+        )
         .unwrap_err();
         assert_eq!(drm, DRM_MESSAGE);
 
-        let preview = select_transcoding(&track(vec![transcoding("mp3_0_1", "progressive", "audio/mpeg", true)])).unwrap_err();
+        let preview = select_transcoding(
+            &track(vec![transcoding("mp3_0_1", "progressive", "audio/mpeg", true)]),
+            false,
+        )
+        .unwrap_err();
         assert_eq!(preview, PREVIEW_MESSAGE);
 
         // A full unencrypted stream still wins over a better encrypted one.
-        let choice = select_transcoding(&track(vec![
-            transcoding("aac_256k", "ctr-encrypted-hls", AAC, false),
-            transcoding("aac_96k", "hls", AAC, false),
-        ]))
+        let choice = select_transcoding(
+            &track(vec![
+                transcoding("aac_256k", "ctr-encrypted-hls", AAC, false),
+                transcoding("aac_96k", "hls", AAC, false),
+            ]),
+            false,
+        )
         .unwrap();
         assert_eq!(choice.label, "SOUNDCLOUD_AAC_96");
+    }
+
+    #[test]
+    fn takes_the_widevine_stream_when_a_device_is_configured() {
+        let choice = select_transcoding(
+            &track(vec![
+                transcoding("aac_256k", "ctr-encrypted-hls", AAC, false),
+                transcoding("aac_160k", "hls", AAC, false),
+            ]),
+            true,
+        )
+        .unwrap();
+        assert_eq!(choice.label, "SOUNDCLOUD_AAC_256");
+        assert!(choice.drm);
+        assert!(!choice.progressive);
+        assert_eq!(choice.ext, ".m4a");
+
+        // FairPlay is still unusable, and a low encrypted stream loses to a
+        // higher unencrypted one.
+        let plain = select_transcoding(
+            &track(vec![
+                transcoding("aac_96k", "ctr-encrypted-hls", AAC, false),
+                transcoding("aac_160k", "hls", AAC, false),
+            ]),
+            true,
+        )
+        .unwrap();
+        assert_eq!(plain.label, "SOUNDCLOUD_AAC_160");
+        assert!(!plain.drm);
     }
 
     #[test]
     fn only_resolves_transcodings_on_api_v2() {
         let mut elsewhere = transcoding("aac_160k", "hls", AAC, false);
         elsewhere["url"] = json!("https://evil.example/media/stream/hls");
-        assert!(select_transcoding(&track(vec![elsewhere])).is_err());
+        assert!(select_transcoding(&track(vec![elsewhere]), false).is_err());
     }
 
     #[test]
@@ -548,19 +849,31 @@ mod tests {
             #EXT-X-MAP:URI=\"https://playback.media-streaming.soundcloud.cloud/x/aac_160k/id/init.mp4?sig=2\"\n\
             #EXTINF:10.0,\nhttps://playback.media-streaming.soundcloud.cloud/x/aac_160k/id/data000.m4s?sig=3\n\
             #EXTINF:10.0,\ndata001.m4s?sig=4\n#EXT-X-ENDLIST\n";
-        let parts = parse_hls(&base, playlist).unwrap();
-        let paths: Vec<&str> = parts.iter().map(|url| url.path()).collect();
+        let hls = parse_hls(&base, playlist).unwrap();
+        let paths: Vec<&str> = hls.parts.iter().map(|url| url.path()).collect();
         assert_eq!(paths, ["/x/aac_160k/id/init.mp4", "/x/aac_160k/id/data000.m4s", "/x/aac_160k/id/data001.m4s"]);
-        assert_eq!(parts[2].query(), Some("sig=4"));
+        assert_eq!(hls.parts[2].query(), Some("sig=4"));
+        assert!(hls.pssh.is_none());
+    }
+
+    #[test]
+    fn reads_the_widevine_pssh_from_the_key_line() {
+        let base = Url::parse("https://playback.media-streaming.soundcloud.cloud/x/playlist.m3u8").unwrap();
+        let playlist = "#EXTM3U\n\
+            #EXT-X-KEY:METHOD=SAMPLE-AES-CTR,URI=\"data:text/plain;base64,AAAAW3Bzc2g\",KEYFORMAT=\"urn:uuid:edef8ba9-79d6-4ace-a3c8-27dcd51d21ed\"\n\
+            #EXT-X-MAP:URI=\"init.mp4\"\n#EXTINF:10,\nseg0.m4s\n";
+        let hls = parse_hls(&base, playlist).unwrap();
+        assert_eq!(hls.pssh.as_deref(), Some("AAAAW3Bzc2g"));
+        assert_eq!(hls.parts.len(), 2);
     }
 
     #[test]
     fn refuses_encrypted_master_and_insecure_playlists() {
         let base = Url::parse("https://cf-hls-media.sndcdn.com/playlist.m3u8").unwrap();
-        let encrypted = "#EXTM3U\n#EXT-X-KEY:METHOD=SAMPLE-AES,URI=\"skd://key\"\n#EXTINF:10,\nseg0.m4s\n";
-        assert_eq!(parse_hls(&base, encrypted).unwrap_err(), DRM_MESSAGE);
+        let fairplay = "#EXTM3U\n#EXT-X-KEY:METHOD=SAMPLE-AES,URI=\"skd://key\"\n#EXTINF:10,\nseg0.m4s\n";
+        assert_eq!(parse_hls(&base, fairplay).unwrap_err(), DRM_MESSAGE);
         let unencrypted = "#EXTM3U\n#EXT-X-KEY:METHOD=NONE\n#EXTINF:10,\nseg0.mp3\n";
-        assert_eq!(parse_hls(&base, unencrypted).unwrap().len(), 1);
+        assert_eq!(parse_hls(&base, unencrypted).unwrap().parts.len(), 1);
         assert!(parse_hls(&base, "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nlow.m3u8\n").is_err());
         assert!(parse_hls(&base, "#EXTM3U\n#EXTINF:10,\nhttp://cf-hls-media.sndcdn.com/seg0.mp3\n").is_err());
         assert!(parse_hls(&base, "<html>").is_err());
