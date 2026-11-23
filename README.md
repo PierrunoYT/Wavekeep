@@ -93,7 +93,7 @@ Install the output from `src-tauri/target/release/bundle/` (`.dmg` on macOS, `.d
 
 ### Amp development orbs
 
-Amp automatically runs the executable `.agents/setup` script when creating a fresh orb. It installs the Linux packages and toolchains required by Tauri (including Node.js 22 with npm when no Node 20+ is present, since Tauri runs `npm run dev`/`npm run build`), installs the locked frontend dependencies, and fetches the Rust dependencies. On resume, `.agents/resume` verifies that the toolchains and frontend dependencies are ready; Wavekeep has no background services to restart.
+Amp automatically runs the executable `.agents/setup` script when creating a fresh orb. It installs the Linux packages and toolchains required by Tauri (including Node.js 22 with npm when no Node 20+ is present, since Tauri runs `npm run dev`/`npm run build`), installs the locked frontend dependencies, and pre-builds the Rust dependencies and test target. On resume, `.agents/resume` verifies that the toolchains and frontend dependencies are ready; Wavekeep has no background services to restart.
 
 ---
 
