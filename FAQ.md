@@ -38,7 +38,7 @@ Yes. Connect Spotify in Settings (a browser login on Spotify's own page), then c
 
 ### Does Spotify work with a Free account?
 
-No, the Spotify source needs **Spotify Premium**. The library Wavekeep uses to talk to Spotify (librespot) closes the whole program as soon as it connects to a Free account, and nothing appears in the log. Wavekeep therefore checks your account type right after the browser login and refuses to connect with "Spotify Premium is required" instead. Older versions (0.3.0) did not check, so Wavekeep just closed right after the Spotify login; the fix is a Premium account, not deleting credentials or app data. Deezer still works with a Free account.
+No, the Spotify source needs **Spotify Premium**. The library Wavekeep uses to talk to Spotify (librespot) closes the whole program as soon as it connects to a Free account, and nothing appears in the log. In 0.3.0 Wavekeep therefore just closes right after the Spotify login. The next version checks your account type first and shows "Spotify Premium is required" instead. Deleting saved credentials or app data does not help; only a Premium account does. Deezer still works with a Free account.
 
 ### Can I paste a link to download?
 
@@ -174,7 +174,7 @@ The default Client ID is shared by every librespot install, so its search quota 
 2. Paste its Client ID into **Settings → Spotify Client ID** (this disconnects you).
 3. Reconnect and approve **both** browser logins: one for downloads (always the default ID) and one for search and your playlists.
 
-Downloads do not depend on this quota. An app in Spotify's development mode can carry limits Wavekeep cannot see. `WAVEKEEP_SPOTIFY_CLIENT_ID` works as an override when the field is blank. If a login hangs, it gives up after 5 minutes and frees port 5588. Connecting also checks your account type through this quota; if it is used up, connecting fails with the rate-limit message until you set your own Client ID or try again later.
+Downloads do not depend on this quota. An app in Spotify's development mode can carry limits Wavekeep cannot see. `WAVEKEEP_SPOTIFY_CLIENT_ID` works as an override when the field is blank. If a login hangs, it gives up after 5 minutes and frees port 5588. From the next version, connecting also checks your account type through this quota; if it is used up, connecting fails with the rate-limit message until you set your own Client ID or try again later.
 
 ### A link, album or playlist does not load.
 
