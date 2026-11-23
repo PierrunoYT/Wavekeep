@@ -415,7 +415,11 @@
             },
             "quality": {
                 "q": "Porque não consigo transferir em FLAC ou 320 kbps?",
-                "a": "No Deezer, FLAC e 320 kbps exigem uma conta Premium. No Spotify, o FLAC sem perdas exige Premium e cada faixa só oferece os formatos que o Spotify fornece. A vista Transferências mostra a qualidade que realmente obtiveste."
+                "a": "No Deezer, FLAC e 320 kbps exigem uma conta Premium. O Spotify exige Premium para qualquer qualidade, e cada faixa só oferece os formatos que o Spotify fornece. A vista Transferências mostra a qualidade que realmente obtiveste."
+            },
+            "spotifyFree": {
+                "q": "O Spotify funciona com uma conta gratuita?",
+                "a": "Não, a fonte Spotify exige Spotify Premium. A biblioteca do Spotify usada pelo Wavekeep fecha a aplicação inteira quando se liga a uma conta gratuita, por isso o Wavekeep verifica o tipo de conta depois do início de sessão no navegador e recusa com \"Spotify Premium is required\". Apagar os inícios de sessão guardados ou os dados da aplicação não muda isto. O Deezer continua a funcionar com uma conta gratuita."
             },
             "rateLimit": {
                 "q": "A pesquisa do Spotify diz que o limite foi atingido (429)",

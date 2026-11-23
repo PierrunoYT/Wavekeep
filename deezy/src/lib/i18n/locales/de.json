@@ -415,7 +415,11 @@
       },
       "quality": {
         "q": "Warum kann ich kein FLAC oder 320 kbit/s herunterladen?",
-        "a": "Bei Deezer brauchen FLAC und 320 kbit/s ein Premium-Konto. Bei Spotify braucht verlustfreies FLAC Premium, und jeder Titel bietet nur die Formate, die Spotify liefert. Die Download-Ansicht zeigt die tatsächlich erhaltene Qualität."
+        "a": "Bei Deezer brauchen FLAC und 320 kbit/s ein Premium-Konto. Spotify braucht für jede Qualität Premium, und jeder Titel bietet nur die Formate, die Spotify liefert. Die Download-Ansicht zeigt die tatsächlich erhaltene Qualität."
+      },
+      "spotifyFree": {
+        "q": "Funktioniert Spotify mit einem kostenlosen Konto?",
+        "a": "Nein, die Spotify-Quelle braucht Spotify Premium. Die Spotify-Bibliothek, die Wavekeep nutzt, beendet die ganze App, sobald sie sich mit einem kostenlosen Konto verbindet. Deshalb prüft Wavekeep nach der Anmeldung im Browser die Kontoart und lehnt stattdessen mit „Spotify Premium is required“ ab. Gespeicherte Anmeldungen oder App-Daten zu löschen ändert daran nichts. Deezer funktioniert weiterhin mit einem kostenlosen Konto."
       },
       "rateLimit": {
         "q": "Die Spotify-Suche meldet das Ratenlimit (429)",

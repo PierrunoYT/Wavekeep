@@ -23,6 +23,7 @@ export const FAQ_ITEMS = [
   'ban',
   'arl',
   'quality',
+  'spotifyFree',
   'rateLimit',
   'twoLogins',
   'failed',
