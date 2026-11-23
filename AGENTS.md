@@ -64,7 +64,7 @@ deezy/                          # All source lives here
         account.rs              # Deezer login, auto_login, exit_app (there is no Deezer logout command)
         catalog.rs              # Deezer catalog/library IPC, `with_session_retry`
         diagnostics.rs          # write_log, read_recent_log, open_log_folder
-        downloads.rs            # download_track / cancel_download (both providers)
+        downloads.rs            # download_track / cancel_download (all three providers)
         filesystem.rs           # music URL parsing and other filesystem IPC
         history.rs              # download history IPC
         settings.rs             # get/save/update settings (allow-list partial updates)
@@ -89,7 +89,7 @@ deezy/                          # All source lives here
         api.rs                  # client_id discovery, api-v2 requests, catalog mapping
         download.rs             # transcoding choice, HLS/progressive/DRM fetch -> .wavekeep.part -> tags
       widevine.rs               # MIT Widevine (L3) CDM + CENC decryption for SoundCloud DRM
-      spotify/                  # second download source, native librespot
+      spotify/                  # second download source, native librespot (tags.rs is shared with SoundCloud)
         mod.rs                  # SpotifyClient re-exports + `spotify:` key helpers
         auth.rs                 # OAuth PKCE login, token refresh, keyring, AP session
         api.rs                  # Web API search/playlists + 401/429 handling
@@ -120,7 +120,7 @@ Rust `setup` runs `migration::run` (moves Deezy data and logins, see below) befo
 2. Queue pops the next item and calls `invoke('download_track', { trackId })`.
 3. `download_track` dispatches on the track key. Deezer resolves `song.getData` and a CDN URL; Spotify resolves AP metadata and selects an audio file; SoundCloud fetches the track from `api-v2` and picks an unencrypted transcoding, or a Widevine one when a `.wvd` device is configured. With `skip_existing_files`, Deezer checks non-empty `.mp3`/`.flac` files and Spotify checks `.ogg`/`.flac`/`.mp3`/`.m4a`, SoundCloud `.m4a`/`.mp3`; a match returns `status: "skipped"` before opening an audio stream.
 4. Deezer decrypts every **3rd** 2048-byte chunk with Blowfish-CBC; Spotify's AES-CTR stream is decrypted with the track's audio key (`session.audio_key().request`) through `AudioDecrypt`, and Spotify's 167-byte (`0xa7`) header is dropped using a magic-byte check (`audio_start`). SoundCloud's DRM segments are CENC-decrypted one at a time in memory (`widevine.rs`, `vsd-mp4`) before they are written. All three pace received bytes through the shared `BandwidthLimiter` when `download_speed_limit_kbps` > 0, as one total limit across concurrent downloads.
-5. Audio is written to a `.wavekeep.part` temp file (`<first 64 bytes of the final name>.<8 hex of md5(track id)>.<n>.wavekeep.part`, created with `create_new`), then published to the final path on completion without overwriting anything. `create_temp_download_file` returns a `TempFileGuard` that deletes the file when dropped; both engines `disarm()` it only after a successful finalize, so an error, cancellation or panic never leaves a temp file behind. File and folder names are capped at 180 bytes (`MAX_COMPONENT_BYTES`), cut at a character boundary and always keeping the extension; names that already fit are unchanged, so skip-existing still finds old files.
+5. Audio is written to a `.wavekeep.part` temp file (`<first 64 bytes of the final name>.<8 hex of md5(track id)>.<n>.wavekeep.part`, created with `create_new`), then published to the final path on completion without overwriting anything. `create_temp_download_file` returns a `TempFileGuard` that deletes the file when dropped; every engine `disarm()`s it only after a successful finalize, so an error, cancellation or panic never leaves a temp file behind. File and folder names are capped at 180 bytes (`MAX_COMPONENT_BYTES`), cut at a character boundary and always keeping the extension; names that already fit are unchanged, so skip-existing still finds old files.
 6. Rust emits `download-progress` Tauri events with `{ track_id, title, percent, status }` throughout.
 7. Deezer writes ID3v2.4 MP3 or Vorbis FLAC tags; Spotify and SoundCloud use `lofty` (`spotify/tags.rs`) for OGG/FLAC/MP3/M4A. Cover art is embedded on the temporary file.
 8. `+layout.svelte` listens for `download-progress` and updates the `downloads` and `downloadHistory` stores.
@@ -134,7 +134,7 @@ Rust `setup` runs `migration::run` (moves Deezy data and logins, see below) befo
 ### State management
 - Global app state lives in `src/lib/stores.ts` as Svelte `writable` stores.
 - `DownloadQueueManager` (singleton in `downloadQueue.ts`) is the authoritative source for download concurrency; it also updates the stores.
-- Rust holds `AppState` (managed via Tauri's `.manage()`) with independent `Arc<Mutex<Option<DeezerClient>>>` and `Arc<Mutex<Option<Arc<SpotifyClient>>>>` sessions, a `Settings` mutex, and a cancellation map keyed by provider-prefixed track ID.
+- Rust holds `AppState` (managed via Tauri's `.manage()`) with independent `Arc<Mutex<Option<DeezerClient>>>` and `Arc<Mutex<Option<Arc<SpotifyClient>>>>` sessions, a `Settings` mutex, and a cancellation map keyed by provider-prefixed track ID. SoundCloud has no session in `AppState`: its anonymous `client_id` is a module static in `soundcloud/api.rs`.
 
 ---
 
@@ -194,7 +194,7 @@ The project uses Svelte 5. Components use `$state(...)`, `$props()`, and `$deriv
 When `folder_structure` is `Custom`, the template (default: `{artist}/{release_date} - {album}/{track_number} - {title}`) supports: `{artist}`, `{album}`, `{title}`, `{track_number}` (alias `{track}`), `{disc_number}` (alias `{disc}`), `{release_date}`, `{release_year}` (alias `{year}`). Template segments are split on `/` and `\`; each segment is sanitised with `sanitize_path_component`.
 
 ### Tag failure is non-fatal
-If `write_mp3_tags` / `write_flac_tags` fails, a `tag-writing-error` event is emitted but the download is still marked complete. Tagging runs on the `.wavekeep.part` temp file *before* it is published, so the file is still named `.wavekeep.part` when the event fires and is renamed to its final path right after; the audio is intact either way. The same holds for Spotify (`spotify/tags.rs`), including a panic inside the tagging task.
+If `write_mp3_tags` / `write_flac_tags` fails, a `tag-writing-error` event is emitted but the download is still marked complete. Tagging runs on the `.wavekeep.part` temp file *before* it is published, so the file is still named `.wavekeep.part` when the event fires and is renamed to its final path right after; the audio is intact either way. The same holds for Spotify and SoundCloud (both use `spotify/tags.rs`), including a panic inside the tagging task.
 
 ### Shutdown
 Closing the window (unless "close to tray" hides it), the tray's Quit and an OS-level quit (`RunEvent::ExitRequested` without an exit code, e.g. macOS Cmd+Q) all emit `app-exit-requested`. The renderer pauses the queue, flushes the download history and calls `exit_app`. On the first such event the backend (`arm_exit_fallback` in `lib.rs`) refuses new `download_track` calls ("Wavekeep is closing"), and if `exit_app` has not been called within 15 s (hung WebView) it runs the same cleanup itself. `exit_app` / `shut_down_and_exit` (`commands/account.rs`) cancel every download and wait at most 30 s for them to clean up before exiting. The close handler reads `close_to_tray` in a task, so a busy settings lock never turns "hide to tray" into an exit. There is no startup sweep of stale `.wavekeep.part` files (it would walk the whole music library); they only remain after a hard crash or a timed-out exit.

@@ -1,12 +1,12 @@
 # Wavekeep FAQ
 
-This FAQ describes Wavekeep 0.3.0. Use the headings to jump to what you need.
+This FAQ describes Wavekeep 0.3.0 and what is coming in the next version: the SoundCloud source and the Spotify Premium check are not in 0.3.0 yet. Use the headings to jump to what you need.
 
 ---
 
 ## Read this first
 
-**Wavekeep is an unofficial tool.** It is not made, approved or supported by Deezer or Spotify.
+**Wavekeep is an unofficial tool.** It is not made, approved or supported by Deezer, Spotify or SoundCloud.
 
 - **It can get your account banned.** Downloading with software like this breaks Deezer's and Spotify's terms of service. They can warn, restrict, suspend or ban an account, and they can do it without notice. Spacing out downloads (see [Can I slow down downloads?](#can-i-slow-down-or-space-out-downloads)) makes the activity look more like normal listening, but it does not remove the risk.
 - **You use it at your own risk.** Wavekeep comes with no warranty. The developer takes no responsibility for banned or restricted accounts, lost playlists, subscriptions or purchases, or anything else that happens because you used it. Do not use an account you cannot afford to lose.
@@ -75,7 +75,7 @@ Free accounts are always limited to MP3 128 kbps, whatever you choose in Setting
 
 ### Why did my Deezer download fall back to a lower quality?
 
-Not every track exists in every quality. Wavekeep tries your selected Deezer quality first and then falls back: **FLAC → MP3 320 kbps → MP3 128 kbps** (MP3 320 falls back to MP3 128). Completed downloads show the requested and the actual quality when a fallback happened. Spotify picks the closest available format for its own setting.
+Not every track exists in every quality. Wavekeep tries your selected Deezer quality first and then falls back: **FLAC → MP3 320 kbps → MP3 128 kbps** (MP3 320 falls back to MP3 128). Completed downloads show the requested and the actual quality when a fallback happened. Spotify picks the closest available format for its own setting; SoundCloud always takes its best stream and shows what it got, such as "SoundCloud AAC 160 kbps".
 
 ### Where are my downloads saved?
 
@@ -87,13 +87,13 @@ Slashes inside metadata, such as `AC/DC`, become underscores and never create fo
 
 ### Can I download whole albums, playlists, Loved Tracks or my own playlists?
 
-Yes. Click **Download All** on an album or playlist, or click its title to pick individual tracks (this also works for albums in an artist's discography). In Search, the **Loved Tracks** tab lists your favourites with **Download All**, and **My Playlists** lists your profile's playlists. This works for Deezer, including private playlists, and for Spotify. Pasted links to supported private playlists work too.
+Yes. Click **Download All** on an album or playlist, or click its title to pick individual tracks (this also works for albums in an artist's discography). In Search, the **Loved Tracks** tab lists your favourites with **Download All**, and **My Playlists** lists your profile's playlists. This works for Deezer, including private playlists, and for Spotify. Pasted links to supported private playlists work too. SoundCloud has no login, so it has no Loved Tracks or My Playlists; open an artist and choose **All tracks** to get their uploads.
 
 Wavekeep runs three downloads at the same time by default; change **Simultaneous Downloads** in Settings (1 to 10).
 
 ### Will Wavekeep download a track again if I already have it?
 
-Not by default. With **Skip Existing Files** on, Wavekeep checks whether a supported audio file already exists at the path it would save to (Deezer: MP3 and FLAC; Spotify: OGG, FLAC, MP3 and M4A). A non-empty match is skipped and shown as "Already downloaded", even if you cleared the history.
+Not by default. With **Skip Existing Files** on, Wavekeep checks whether a supported audio file already exists at the path it would save to (Deezer: MP3 and FLAC; Spotify: OGG, FLAC, MP3 and M4A; SoundCloud: M4A and MP3). A non-empty match is skipped and shown as "Already downloaded", even if you cleared the history.
 
 Only the current folder structure is checked, so files saved under an earlier structure are not found. With the setting off, a second copy is saved with a numbered name such as `Artist - Title (1).mp3`.
 
@@ -184,11 +184,11 @@ Downloads do not depend on this quota. An app in Spotify's development mode can 
 
 ### A link, album or playlist does not load.
 
-Use a full `https://` link from `deezer.com` (`/track/`, `/album/`, `/artist/` or `/playlist/` with a numeric ID); short links are not supported. A failed page while loading is reported as an error instead of a shorter list, so check your connection and retry. If it still fails, update your ARL and check that the content is available in your region.
+Use a full `https://` link from `deezer.com` (`/track/`, `/album/`, `/artist/` or `/playlist/` with a numeric ID), `open.spotify.com` or `soundcloud.com`; short links (including `on.soundcloud.com`) are not supported. A failed page while loading is reported as an error instead of a shorter list, so check your connection and retry. If it still fails, update your ARL (Deezer) and check that the content is available in your region.
 
 ### Covers or previews do not load.
 
-Update to the latest release and allow HTTPS to `api.deezer.com`, `*.dzcdn.net`, `api.spotify.com`, `*.scdn.co` and `*.spotifycdn.com` in your firewall, DNS filter or proxy.
+Update to the latest release and allow HTTPS to `api.deezer.com`, `*.dzcdn.net`, `api.spotify.com`, `*.scdn.co`, `*.spotifycdn.com`, `api-v2.soundcloud.com` and `*.sndcdn.com` in your firewall, DNS filter or proxy.
 
 ### The app shows a blank or black screen.
 

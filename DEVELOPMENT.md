@@ -50,9 +50,10 @@ Paths below are relative to `deezy/`.
 | `src/lib/components/search/` | Search and library (Loved Tracks, My Playlists) result rendering, types, and styles |
 | `src-tauri/src/lib.rs` | Managed application state, command registration, window events |
 | `src-tauri/src/commands/` | IPC handlers grouped by account, catalog, diagnostics (log), downloads, filesystem, history, settings, Spotify, tag editor, themes, and tray |
-| `src-tauri/src/deezer/` | Authentication, gateway and catalog requests, user library (Loved Tracks, profile playlists), media resolution, crypto, downloads, models, and the bandwidth limiter shared with Spotify |
-| `src-tauri/src/spotify/` | OAuth/AP sessions, Web API and Pathfinder search, AP catalog metadata, librespot audio streaming, and OGG/FLAC/MP3/M4A tagging |
-| `src-tauri/src/paths.rs` | Provider-neutral destination paths and safe temp-file finalization shared by both engines |
+| `src-tauri/src/deezer/` | Authentication, gateway and catalog requests, user library (Loved Tracks, profile playlists), media resolution, crypto, downloads, models, and the bandwidth limiter shared with Spotify and SoundCloud |
+| `src-tauri/src/spotify/` | OAuth/AP sessions, Web API and Pathfinder search, AP catalog metadata, librespot audio streaming, and OGG/FLAC/MP3/M4A tagging (also used by SoundCloud) |
+| `src-tauri/src/soundcloud/` | Anonymous `api-v2` client (client_id lookup, search, catalog, link resolving) and HLS/progressive downloads |
+| `src-tauri/src/paths.rs` | Provider-neutral destination paths and safe temp-file finalization shared by all three engines |
 | `src-tauri/src/settings.rs` | Validated settings, credential storage, atomic private-file writes |
 | `src-tauri/src/themes.rs` | Custom theme validation and persistence |
 | `src-tauri/src/migration.rs` | One-time move of Deezy data and credentials to the Wavekeep identifier |
@@ -205,7 +206,7 @@ that review. Test these separately when changes affect those paths.
    section. Keep source-only changes distinct from shipped installer behavior.
 4. Install locked dependencies and run `npm test`, `npm run check`, `npm run build`,
    and `cargo test --manifest-path src-tauri/Cargo.toml`.
-5. Smoke-test Deezer and Spotify login/session restoration, search and rate-limit
+5. Smoke-test Deezer and Spotify login/session restoration, SoundCloud search and links (no login), search and rate-limit
    fallback, catalog loading, previews where available, download/pause/resume,
    tagging, restart recovery, themes, and tray shutdown on the release platform.
 6. Build with `bun run tauri build` and verify the generated artifacts under
