@@ -1,6 +1,6 @@
 # Wavekeep FAQ
 
-This FAQ describes Wavekeep 0.3.0 and what is coming in the next version: the SoundCloud source (including its optional Widevine DRM), the YouTube source, the Spotify Premium check and the dark default theme are not in 0.3.0 yet. Use the headings to jump to what you need.
+This FAQ describes Wavekeep 0.4.0. Use the headings to jump to what you need.
 
 ---
 
@@ -46,7 +46,7 @@ No, but you need three free tools installed and on your PATH: yt-dlp, Deno (yt-d
 
 ### Does Spotify work with a Free account?
 
-No, the Spotify source needs **Spotify Premium**. The library Wavekeep uses to talk to Spotify (librespot) closes the whole program as soon as it connects to a Free account, and nothing appears in the log. In 0.3.0 Wavekeep therefore just closes right after the Spotify login. The next version checks your account type first, at login and each time it restores your saved login at startup, and shows "Spotify Premium is required" instead; a saved Free login is then removed. Deleting saved credentials or app data does not help; only a Premium account does. Deezer still works with a Free account.
+No, the Spotify source needs **Spotify Premium**. The library Wavekeep uses to talk to Spotify (librespot) closes the whole program as soon as it connects to a Free account, and nothing appears in the log. In 0.3.0 Wavekeep therefore just closed right after the Spotify login. Since 0.4.0 it checks your account type first, at login and each time it restores your saved login at startup, and shows "Spotify Premium is required" instead; a saved Free login is then removed. Deleting saved credentials or app data does not help; only a Premium account does. Deezer still works with a Free account.
 
 ### Can I paste a link to download?
 

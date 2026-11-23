@@ -4,6 +4,8 @@ All notable changes to Wavekeep (formerly Deezy) are documented here.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-23
+
 ### Added
 
 - **SoundCloud source** — Search SoundCloud tracks, albums, artists and playlists, open an artist's uploads ("All tracks"), albums and playlists, and paste `soundcloud.com` track, set or profile links. No account is needed. Wavekeep downloads the best stream SoundCloud serves without encryption (today usually AAC 160 kbps, saved as `.m4a`; MP3 128 when that is better or the only option) and tags it with title, artist, release date, ISRC and artwork. Tracks that SoundCloud only offers as DRM-protected streams (many major-label releases) or as a 30-second preview are refused with a message saying so, unless a Widevine device is configured (see below). Downloads use the same queue, folder structure, skip-existing check and speed limit as the other sources.
